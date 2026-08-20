@@ -1,4 +1,4 @@
-﻿const mockInventory = {
+const mockInventory = {
   profileDir: '~/.dsh/profiles/web',
   core: [
     { name: '@deepseek-ai/dsh-base', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core' },
@@ -37,9 +37,9 @@ function createBrowserMock() {
   }
   let updateStatus = {
     phase: 'available',
-    message: '发现新版本 1.5.0',
-    currentVersion: '1.5.0',
-    latestVersion: '1.5.0',
+    message: '发现新版本 1.6.0',
+    currentVersion: '1.6.0',
+    latestVersion: '1.6.0',
     repository: settings.updateRepository,
     releaseUrl: 'https://github.com/',
     notes: '性能优化、插件体验改进与错误修复。',
@@ -81,7 +81,7 @@ function createBrowserMock() {
   }
   return {
     isMock: true,
-    app: { info: async () => ({ version: '1.5.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
+    app: { info: async () => ({ version: '1.6.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
     window: {
       minimize() {}, toggleMaximize() {}, close() {},
       isMaximized: async () => false,
@@ -105,7 +105,7 @@ function createBrowserMock() {
     updates: {
       status: async () => updateStatus,
       check: async () => updateStatus,
-      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.5.0 已通过国内社区镜像下载并通过 SHA-256 校验', progress: 100, downloadedPath: 'update.exe', downloadSource: '国内社区镜像' }),
+      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.6.0 已通过国内社区镜像下载并通过 SHA-256 校验', progress: 100, downloadedPath: 'update.exe', downloadSource: '国内社区镜像' }),
       install: async () => ({ launched: true }),
       onStatus: () => () => {},
     },

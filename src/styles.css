@@ -261,6 +261,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .vision-field select { appearance: auto; color: #c9d0df; font-family: inherit; font-size: 9px; cursor: pointer; }
 .vision-field input::placeholder { color: #4e596c; }
 .vision-field input:focus, .vision-field select:focus { border-color: rgba(104, 129, 255, 0.56); box-shadow: 0 0 0 3px rgba(77, 107, 254, 0.08); }
+.vision-advanced-toggle { margin-top: 7px; padding: 0 3px; font-size: 8px; }
+.vision-advanced-toggle svg { transition: transform 160ms ease; }
+.vision-advanced-toggle svg.rotate-90 { transform: rotate(90deg); }
 .vision-fields { display: grid; }
 .vision-auto-note, .vision-cli-note, .vision-empty { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px; border: 1px solid rgba(104, 129, 255, 0.13); border-radius: 10px; color: #8597e2; background: rgba(77, 107, 254, 0.05); }
 .vision-auto-note svg, .vision-cli-note svg, .vision-empty > svg { flex: 0 0 auto; }

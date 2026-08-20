@@ -167,7 +167,7 @@ function summarizeStatus({ installed, version, config, doctor, configError = '',
   const selectedName = doctor?.selection?.canonical || config?.provider || ''
   const selected = providers.find((provider) => provider.name === selectedName)
   let phase = 'unconfigured'
-  let message = '尚未配置可用视觉引擎。建议接入 Gemini API 或 OpenAI 兼容视觉接口。'
+  let message = '尚未配置可用视觉引擎。建议接入阿里千问 Qwen-VL（国内直连，只需 API Key）。'
   if (readyProviders.length) {
     phase = selected?.ready ? 'ready' : 'degraded'
     message = selected?.ready

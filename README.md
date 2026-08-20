@@ -2,7 +2,7 @@
 
 > 非官方社区项目：一个面向 Windows 的 DeepSeek Harness 桌面客户端。
 
-界面采用 Codex / 豆包一类现代智能体产品的布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
+界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -12,7 +12,7 @@
 - 官方 Harness Web UI：会话、工作区、模型设置、工具调用、权限、Skills、子智能体等能力由 Harness 提供。
 - 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录。
 - 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、DSH Backup 和 DSH Screenshot 的版本化一键接入入口。
-- ModLens 视觉 API 设置：内置「阿里千问 Qwen-VL」快捷配置（阿里云百炼 DashScope，国内直连），也可配置 Gemini、Anthropic 或任意 OpenAI 兼容多模态端点，检测引擎状态并在保存后自动重启 Harness；API Key 不进入项目或 Git。
+- ModLens 视觉 API 设置：默认「阿里千问 Qwen-VL」（阿里云百炼 DashScope，国内直连），其余 Gemini、Anthropic、Claude CLI、OpenAI 兼容等多模态端点折叠进「高级选项」；检测引擎状态并在保存后自动重启 Harness；API Key 不进入项目或 Git。
 - Token 余额显示：顶栏实时显示 DeepSeek 账户余额，点击可刷新；读取 `~/.dsh/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`。
 - DSH Skill 管理：导入、发现和移除包含 `SKILL.md` 的本地技能包；Harness 可热刷新并通过 `/skill-name` 调用。
 - 插件启用 / 停用 / 卸载：直接管理 `~/.dsh/profiles/web` 的依赖与 bundles。
@@ -21,7 +21,7 @@
 - 零配置新会话：首次启动自动创建并注册 `%USERPROFILE%\Documents\DeepSeek Harness\Workspace`。
 - 智能路径识别：聊天中出现 `E:\project`、`C:/work/app`、UNC 路径或具体文件时，自动识别并注册已有目录；显式路径优先于默认工作区。
 - 安装版与免安装版 Windows 可执行文件。
-- 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256。
+- 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256；更新采用静默覆盖安装并自动重启，无需重新走安装向导。
 - DeepSeek 官方 Harness 随附的鲸鱼图标，用于窗口和可执行文件。
 
 ## 开发运行
@@ -48,8 +48,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.5.0-x64.exe`：推荐的安装向导，可自定义安装目录、创建快捷方式并在完成后启动。
-- `DeepSeek-Harness-Studio-Portable-1.5.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.6.0-x64.exe`：推荐的 one-click 安装版，双击即可静默安装，后续更新自动覆盖并重启。
+- `DeepSeek-Harness-Studio-Portable-1.6.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -58,6 +58,8 @@ npm run dist
 v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
 
 v1.4.1 的国内更新镜像、自动回退与校验策略见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
+
+v1.6.0 的视觉模块简化（默认阿里千问）与静默覆盖升级见 [docs/RELEASE_NOTES_1.6.0_CN.md](docs/RELEASE_NOTES_1.6.0_CN.md)。
 
 v1.5.0 的阿里千问视觉引擎、Token 余额显示与更新器代理优化见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -81,7 +83,7 @@ dsh plugin --profile web remove <package>
 ## 配置与故障排查
 
 - 主智能体 API、模型供应商与主题：进入 Harness 内部的“设置”。
-- ModLens 视觉 API：进入 Studio 右上角“偏好设置 → 视觉能力”。主智能体可以继续使用 DeepSeek 文本模型；ModLens 另行调用一个支持图片输入的视觉模型。
+- ModLens 视觉 API：进入 Studio 右上角“偏好设置 → 视觉能力”，默认使用阿里千问 Qwen-VL。主智能体继续使用 DeepSeek 文本模型；ModLens 另行调用阿里千问识图。
 - Studio 偏好：窗口右上角齿轮。
 - Harness 数据：`%USERPROFILE%\.dsh`。
 - 默认 Web profile：`%USERPROFILE%\.dsh\profiles\web`。

@@ -94,22 +94,16 @@ async function main() {
 function releaseNotes() {
   return `## v${VERSION} 更新内容
 
-### 🖼️ 视觉模块重做（接入阿里千问）
-- 新增「阿里千问 Qwen-VL」视觉引擎快捷配置：接入阿里云百炼 DashScope（OpenAI 兼容端点），国内直连、无需代理
-- 自动填充 \`https://dashscope.aliyuncs.com/compatible-mode/v1\` 与 \`qwen-vl-max\`，只需粘贴 API Key 即可用
-- 保留 OpenAI 兼容、Gemini、Anthropic、Claude CLI 等引擎与自动故障转移
+### 🖼️ 视觉模块简化（默认阿里千问）
+- 视觉引擎默认只展示「阿里千问 Qwen-VL」，其余引擎折叠进「高级选项」，避免 Claude/codex 等选项造成困惑
+- 未配置时默认引导到阿里千问，只需粘贴阿里云百炼 DashScope API Key 即可识图
 
-### 💰 新增 Token 余额显示
-- 顶栏实时显示 DeepSeek 账户余额（读取 \`~/.dsh/.credentials.yaml\` 中的 DEEPSEEK_API_KEY）
-- 点击余额可手动刷新；未配置 API Key 时明确提示
-
-### ⚡ 更新器优化
-- 更新下载自动走系统代理（优先环境变量 HTTPS_PROXY，其次 Windows 系统代理），国内更新速度提升 100 倍以上
-- 元数据请求超时 15s→30s、安装包下载超时 30s→180s，减少大文件断流
-- 保留国内社区镜像回退与 SHA-256 校验
+### ⚡ 静默覆盖升级
+- 安装包改为 one-click 静默模式，点击「立即更新」后自动覆盖安装到原目录并重启应用，不再弹出安装向导
+- 更新前应用自动退出、完成后自动重启，工作区、会话、插件与设置均保留
 
 ### 其他
-- 版本升级至 \`1.5.0\`
+- 版本升级至 \`${VERSION}\`
 `
 }
 

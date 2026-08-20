@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArchiveRestore,
   Blocks,
@@ -60,9 +60,12 @@ const EMPTY_MODLENS_STATUS = {
   error: '',
 }
 
-const VISION_PROVIDERS = [
-  { value: '', label: '自动故障转移', hint: '使用所有已就绪引擎' },
+// 视觉引擎：默认只展示阿里千问（国内直连）；其余引擎收进「高级选项」，避免 Claude/codex 等选项造成困惑。
+const VISION_PRIMARY_PROVIDERS = [
   { value: 'qwen', label: '阿里千问 Qwen-VL', hint: '阿里云百炼 DashScope，国内直连' },
+]
+const VISION_ADVANCED_PROVIDERS = [
+  { value: '', label: '自动故障转移', hint: '使用所有已就绪引擎' },
   { value: 'openai', label: 'OpenAI 兼容 API', hint: 'Qwen-VL、GLM-V、vLLM、Ollama 等' },
   { value: 'gemini-api', label: 'Gemini API', hint: 'Google AI Studio，多模态直连' },
   { value: 'anthropic', label: 'Anthropic API', hint: 'Claude 多模态接口' },
@@ -550,7 +553,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.5.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.6.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -559,7 +562,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
         <div>
           {status.releaseUrl ? <button className="text-button" type="button" onClick={() => studio.runtime.openUrl(status.releaseUrl)}><Github size={14} />发布页</button> : null}
           {status.phase === 'downloaded'
-            ? <button className="primary-button compact-button" type="button" onClick={onInstall}><Download size={14} />安装并重启</button>
+            ? <button className="primary-button compact-button" type="button" onClick={onInstall}><Download size={14} />立即更新</button>
             : secureDownload
               ? <button className="primary-button compact-button" type="button" onClick={onDownload}><Download size={14} />下载更新</button>
               : <button className="secondary-button compact-button" disabled={busy || status.phase === 'unconfigured'} type="button" onClick={onCheck}>{busy ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}{status.phase === 'checking' ? '检查中…' : '检查更新'}</button>}
@@ -571,12 +574,18 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
 
 function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
   const summary = status.config
-  const [draft, setDraft] = useState({ provider: '', apiKey: '', baseUrl: '', model: '' })
+  const [draft, setDraft] = useState({ provider: 'qwen', apiKey: '', baseUrl: '', model: '' })
+  const [showAdvanced, setShowAdvanced] = useState(false)
+
+  const isAdvancedProvider = (value) => !VISION_PRIMARY_PROVIDERS.some((provider) => provider.value === value)
 
   useEffect(() => {
-    const provider = summary?.provider || ''
+    const configured = summary?.provider || ''
+    // 未配置时默认引导到阿里千问；已配置高级引擎时自动展开高级区
+    const provider = configured || 'qwen'
     const engine = summary?.engines?.[provider] || {}
     setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || '', model: engine.model || '' })
+    if (configured && isAdvancedProvider(configured)) setShowAdvanced(true)
   }, [summary])
 
   const chooseProvider = (provider) => {
@@ -655,9 +664,15 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
           <label className="vision-field">
             <span>视觉引擎</span>
             <select value={draft.provider} onChange={(event) => chooseProvider(event.target.value)}>
-              {VISION_PROVIDERS.map((provider) => <option key={provider.value || 'auto'} value={provider.value}>{provider.label} · {provider.hint}</option>)}
+              {VISION_PRIMARY_PROVIDERS.map((provider) => <option key={provider.value} value={provider.value}>{provider.label} · {provider.hint}</option>)}
+              {showAdvanced || isAdvancedProvider(draft.provider)
+                ? VISION_ADVANCED_PROVIDERS.map((provider) => <option key={provider.value || 'auto'} value={provider.value}>{provider.label} · {provider.hint}</option>)
+                : null}
             </select>
           </label>
+          <button className="text-button vision-advanced-toggle" type="button" onClick={() => setShowAdvanced((value) => !value)}>
+            <ChevronRight size={14} className={showAdvanced ? 'rotate-90' : ''} />{showAdvanced ? '收起高级引擎' : '高级引擎（Gemini / Claude 等）'}
+          </button>
 
           {draft.provider === '' ? (
             <div className="vision-auto-note">
@@ -773,7 +788,7 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
 
         <section>
           <div className="section-label"><span>软件更新</span></div>
-          <SettingRow icon={RefreshCw} title="自动检查更新" description="启动后静默检查，仅在你确认后下载和安装">
+          <SettingRow icon={RefreshCw} title="自动检查更新" description="启动后静默检查；更新会静默覆盖安装并自动重启，无需重新走安装向导">
             <Toggle checked={settings.autoCheckUpdates !== false} label="自动检查更新" onChange={(autoCheckUpdates) => setSettings((current) => ({ ...current, autoCheckUpdates }))} />
           </SettingRow>
           <SettingRow icon={Github} title="GitHub 更新仓库" description="支持 owner/repo 或仓库网址；留空使用内置仓库">
@@ -841,8 +856,8 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.5.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.5.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.6.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.6.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)
@@ -1054,7 +1069,7 @@ export default function App() {
   }
 
   const installUpdate = async () => {
-    if (!window.confirm('将关闭 DeepSeek Harness Studio 并启动新版安装程序。\n你的工作区、会话、插件和设置都会保留。是否继续？')) return
+    if (!window.confirm('将静默更新到新版本并自动重启，不再弹出安装向导。\n你的工作区、会话、插件和设置都会保留。是否继续？')) return
     try { await studio.updates.install() }
     catch (error) { notify(error.message || String(error), 'error') }
   }

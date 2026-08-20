@@ -170,7 +170,8 @@ function registerUpdateIpc() {
   ipcMain.handle('updates:download', () => updates.download())
   ipcMain.handle('updates:install', () => {
     const result = updates.install()
-    setTimeout(() => app.quit(), 300)
+    // 静默安装由分离进程在应用退出后执行；立即退出以释放文件锁
+    setImmediate(() => app.quit())
     return result
   })
 }
