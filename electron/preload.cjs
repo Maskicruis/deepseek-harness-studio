@@ -52,6 +52,10 @@ contextBridge.exposeInMainWorld('harnessStudio', {
     onBusy: (callback) => subscribe('plugins:busy', callback),
     onLog: (callback) => subscribe('plugins:log', callback),
   },
+  modlens: {
+    status: () => ipcRenderer.invoke('modlens:status'),
+    save: (patch) => ipcRenderer.invoke('modlens:save', patch),
+  },
   skills: {
     list: () => ipcRenderer.invoke('skills:list'),
     chooseLocal: () => ipcRenderer.invoke('skills:choose-local'),

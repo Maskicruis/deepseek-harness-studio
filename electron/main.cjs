@@ -4,6 +4,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { RuntimeManager } = require('./lib/runtime-manager.cjs')
 const { PluginManager } = require('./lib/plugin-manager.cjs')
+const { ModlensManager } = require('./lib/modlens-manager.cjs')
 const { SkillManager } = require('./lib/skill-manager.cjs')
 const { UpdateManager } = require('./lib/update-manager.cjs')
 const { extractAbsolutePaths, promptTextFromUpload, resolveExistingWorkspace } = require('./lib/path-detector.cjs')
@@ -12,6 +13,7 @@ const { SettingsStore } = require('./lib/settings-store.cjs')
 let mainWindow = null
 let runtime = null
 let plugins = null
+let modlens = null
 let skills = null
 let updates = null
 let settings = null
@@ -205,6 +207,15 @@ function registerPluginIpc() {
   })
 }
 
+function registerModlensIpc() {
+  ipcMain.handle('modlens:status', () => modlens.status())
+  ipcMain.handle('modlens:save', async (_event, patch) => {
+    await modlens.save(patch)
+    await runtime.restart()
+    return modlens.status()
+  })
+}
+
 function registerSkillIpc() {
   ipcMain.handle('skills:list', () => skills.list())
   ipcMain.handle('skills:choose-local', async () => {
@@ -239,6 +250,11 @@ app.whenReady().then(async () => {
     nodePath: runtimePaths.node,
     onLog: (entry) => emit('plugins:log', { ...entry, time: new Date().toISOString() }),
   })
+  modlens = new ModlensManager({
+    nodePath: runtimePaths.node,
+    dshHome: path.join(os.homedir(), '.dsh'),
+    getPort: () => settings.get().port,
+  })
   skills = new SkillManager({ dshHome: path.join(os.homedir(), '.dsh') })
   updates = new UpdateManager({
     currentVersion: app.getVersion(),
@@ -255,6 +271,7 @@ app.whenReady().then(async () => {
   registerSettingsIpc()
   registerUpdateIpc()
   registerPluginIpc()
+  registerModlensIpc()
   registerSkillIpc()
   createMainWindow()
 

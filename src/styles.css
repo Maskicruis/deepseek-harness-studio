@@ -205,8 +205,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .ecosystem-card > p { margin: 11px 0 5px; color: #9aa4b7; font-size: 9.5px; line-height: 1.55; }
 .ecosystem-card > small { display: block; color: #626e83; font-size: 8.3px; line-height: 1.5; }
 .ecosystem-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 11px; }
-.component-docs, .component-install { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: 8.5px; font-weight: 650; }
+.component-docs, .component-configure, .component-install { display: inline-flex; align-items: center; justify-content: center; gap: 5px; height: 30px; padding: 0 10px; border-radius: 8px; cursor: pointer; font-size: 8.5px; font-weight: 650; }
 .component-docs { border: 1px solid var(--border); color: #8490a7; background: rgba(255, 255, 255, 0.025); }
+.component-configure { border: 1px solid rgba(79, 214, 156, 0.22); color: #91e2ba; background: rgba(79, 214, 156, 0.075); }
+.component-configure:hover { background: rgba(79, 214, 156, 0.13); }
 .component-install { border: 1px solid rgba(109, 132, 244, 0.28); color: #dfe5ff; background: rgba(77, 107, 254, 0.16); }
 .component-install:hover { background: rgba(77, 107, 254, 0.25); }
 .component-install:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -234,6 +236,46 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .settings-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
 .settings-body { padding-top: 1px; }
 .settings-body section:not(.about-card) { margin-bottom: 24px; }
+.vision-card { overflow: hidden; padding: 13px; border: 1px solid rgba(105, 128, 238, 0.18); border-radius: 14px; background: radial-gradient(circle at 100% 0, rgba(77, 107, 254, 0.14), transparent 38%), rgba(255, 255, 255, 0.024); }
+.vision-card.ready { border-color: rgba(79, 214, 156, 0.24); background: radial-gradient(circle at 100% 0, rgba(79, 214, 156, 0.1), transparent 38%), rgba(255, 255, 255, 0.024); }
+.vision-card.degraded { border-color: rgba(244, 189, 105, 0.22); }
+.vision-card.error { border-color: rgba(255, 102, 127, 0.23); }
+.vision-card-head { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; }
+.vision-card-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: #b4c0ff; background: linear-gradient(145deg, rgba(100, 125, 255, 0.24), rgba(57, 79, 188, 0.12)); box-shadow: inset 0 1px rgba(255, 255, 255, 0.06); }
+.vision-card-title { display: flex; align-items: center; gap: 6px; }
+.vision-card-title strong { font-size: 11.5px; }
+.vision-card-title span { padding: 2px 5px; border-radius: 5px; color: #91a2ea; background: rgba(77, 107, 254, 0.1); font-family: "Cascadia Code", Consolas, monospace; font-size: 7px; }
+.vision-card-head p { margin: 4px 0 0; color: #69758a; font-size: 8.2px; line-height: 1.45; }
+.vision-state { padding: 4px 6px; border-radius: 7px; color: #98a6df; background: rgba(77, 107, 254, 0.09); font-size: 7.5px; font-weight: 700; white-space: nowrap; }
+.vision-state.ready { color: #7be0af; background: rgba(79, 214, 156, 0.09); }
+.vision-state.degraded { color: #e7b96f; background: rgba(244, 189, 105, 0.09); }
+.vision-state.error, .vision-state.missing { color: #f18da0; background: rgba(255, 102, 127, 0.08); }
+.vision-field { display: grid; gap: 6px; margin-top: 12px; }
+.vision-field > span { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #8c97aa; font-size: 8.8px; font-weight: 650; }
+.vision-field > span small { color: #586377; font-size: 7.2px; font-weight: 500; }
+.vision-field input, .vision-field select { width: 100%; height: 34px; border: 1px solid var(--border); border-radius: 9px; outline: 0; padding: 0 10px; color: #d4dae6; background: rgba(3, 5, 9, 0.32); font-family: "Cascadia Code", Consolas, monospace; font-size: 8.5px; user-select: text; }
+.vision-field select { appearance: auto; color: #c9d0df; font-family: inherit; font-size: 9px; cursor: pointer; }
+.vision-field input::placeholder { color: #4e596c; }
+.vision-field input:focus, .vision-field select:focus { border-color: rgba(104, 129, 255, 0.56); box-shadow: 0 0 0 3px rgba(77, 107, 254, 0.08); }
+.vision-fields { display: grid; }
+.vision-auto-note, .vision-cli-note, .vision-empty { display: flex; align-items: flex-start; gap: 9px; margin-top: 12px; padding: 11px; border: 1px solid rgba(104, 129, 255, 0.13); border-radius: 10px; color: #8597e2; background: rgba(77, 107, 254, 0.05); }
+.vision-auto-note svg, .vision-cli-note svg, .vision-empty > svg { flex: 0 0 auto; }
+.vision-auto-note strong, .vision-cli-note strong, .vision-empty strong { display: block; color: #abb5cb; font-size: 9px; }
+.vision-auto-note p, .vision-cli-note p, .vision-empty p { margin: 4px 0 0; color: #657085; font-size: 8px; line-height: 1.5; }
+.vision-cli-note.ready { color: #75dbaa; border-color: rgba(79, 214, 156, 0.17); background: rgba(79, 214, 156, 0.055); }
+.vision-warning { display: flex; align-items: flex-start; gap: 6px; margin: 9px 1px 0; color: #d2a25e; font-size: 7.8px; line-height: 1.45; }
+.vision-warning svg { flex: 0 0 auto; }
+.vision-actions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 13px; }
+.vision-missing { margin: 7px 1px 0; color: #d7a868; font-size: 7.8px; text-align: right; }
+.vision-usage { margin-top: 13px; padding: 10px 11px; border-radius: 10px; color: #7c8fd5; background: rgba(77, 107, 254, 0.055); }
+.vision-usage strong { display: flex; align-items: center; gap: 5px; color: #9dabe1; font-size: 8.8px; }
+.vision-usage p { margin: 5px 0 0; color: #69758c; font-size: 7.8px; line-height: 1.55; }
+.vision-usage code, .vision-security code { color: #aab7ed; font-family: "Cascadia Code", Consolas, monospace; user-select: text; }
+.vision-security { display: flex; align-items: flex-start; gap: 5px; margin: 9px 1px 0; color: #587166; font-size: 7.3px; line-height: 1.45; }
+.vision-security svg { flex: 0 0 auto; color: #69a98b; }
+.vision-empty { align-items: center; }
+.vision-empty > div { flex: 1; min-width: 0; }
+.vision-empty button { flex: 0 0 auto; }
 .setting-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 9px; min-height: 62px; padding: 9px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.055); }
 .setting-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; color: #8394de; background: rgba(77, 107, 254, 0.09); }
 .setting-copy strong { display: block; font-size: 11px; }

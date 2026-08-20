@@ -35,9 +35,9 @@ function createBrowserMock() {
   }
   let updateStatus = {
     phase: 'available',
-    message: '发现新版本 1.4.0',
-    currentVersion: '1.3.0',
-    latestVersion: '1.4.0',
+    message: '发现新版本 1.5.0',
+    currentVersion: '1.4.0',
+    latestVersion: '1.5.0',
     repository: settings.updateRepository,
     releaseUrl: 'https://github.com/',
     notes: '性能优化、插件体验改进与错误修复。',
@@ -45,9 +45,37 @@ function createBrowserMock() {
     downloadedPath: '',
     checkedAt: new Date().toISOString(),
   }
+  let modlensStatus = {
+    installed: true,
+    version: '3.22.0',
+    phase: 'unconfigured',
+    message: '尚未配置可用视觉引擎。建议接入 Gemini API 或 OpenAI 兼容视觉接口。',
+    config: {
+      provider: '',
+      engines: {
+        'antigravity-cli': { baseUrl: '', model: '', hasKey: false, source: '' },
+        'gemini-api': { baseUrl: '', model: '', hasKey: false, source: '' },
+        openai: { baseUrl: '', model: '', hasKey: false, source: '' },
+        anthropic: { baseUrl: '', model: '', hasKey: false, source: '' },
+        'claude-cli': { baseUrl: '', model: '', hasKey: false, source: '' },
+      },
+      keyless: ['antigravity-cli', 'claude-cli'],
+      reuse: { claude: true, codex: false, opencode: false, pi: false, grok: false },
+    },
+    providers: [
+      { name: 'antigravity-cli', kind: 'subprocess', ready: false, status: 'missing', detail: 'agy not on PATH', missing: [] },
+      { name: 'gemini-api', kind: 'api', ready: false, status: 'missing', detail: 'missing: apiKey', missing: ['apiKey'] },
+      { name: 'openai', kind: 'api', ready: false, status: 'missing', detail: 'missing: baseUrl, apiKey, model', missing: ['baseUrl', 'apiKey', 'model'] },
+      { name: 'anthropic', kind: 'api', ready: false, status: 'missing', detail: 'missing: apiKey', missing: ['apiKey'] },
+      { name: 'claude-cli', kind: 'subprocess', ready: true, status: 'installed', detail: 'Claude CLI 已安装（登录状态需实际调用确认）', missing: [] },
+    ],
+    selection: { provider: 'antigravity-cli', canonical: 'antigravity-cli', source: 'default' },
+    chains: { local: ['claude-cli'], remote: [] },
+    error: '',
+  }
   return {
     isMock: true,
-    app: { info: async () => ({ version: '1.3.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
+    app: { info: async () => ({ version: '1.4.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
     window: {
       minimize() {}, toggleMaximize() {}, close() {},
       isMaximized: async () => false,
@@ -71,7 +99,7 @@ function createBrowserMock() {
     updates: {
       status: async () => updateStatus,
       check: async () => updateStatus,
-      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.4.0 已下载并通过校验', progress: 100, downloadedPath: 'update.exe' }),
+      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.5.0 已下载并通过校验', progress: 100, downloadedPath: 'update.exe' }),
       install: async () => ({ launched: true }),
       onStatus: () => () => {},
     },
@@ -87,6 +115,27 @@ function createBrowserMock() {
       openProfile: async () => {},
       onBusy: () => () => {},
       onLog: () => () => {},
+    },
+    modlens: {
+      status: async () => modlensStatus,
+      save: async (patch) => {
+        const provider = patch.provider || ''
+        const engines = { ...modlensStatus.config.engines }
+        if (patch.engine) engines[patch.engine] = {
+          ...engines[patch.engine],
+          baseUrl: patch.baseUrl || '',
+          model: patch.model || '',
+          hasKey: Boolean(patch.apiKey || engines[patch.engine]?.hasKey),
+          source: 'file',
+        }
+        modlensStatus = {
+          ...modlensStatus,
+          phase: provider ? 'ready' : 'degraded',
+          message: provider ? `${provider} 已就绪，可以读取图片。` : '已启用自动故障转移。',
+          config: { ...modlensStatus.config, provider, engines },
+        }
+        return modlensStatus
+      },
     },
     skills: {
       list: async () => mockSkills,

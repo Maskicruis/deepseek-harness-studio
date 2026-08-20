@@ -47,6 +47,27 @@ const EMPTY_RUNTIME = {
   logs: [],
 }
 
+const EMPTY_MODLENS_STATUS = {
+  installed: false,
+  version: '',
+  phase: 'idle',
+  message: '正在检查 ModLens…',
+  config: null,
+  providers: [],
+  selection: null,
+  chains: { local: [], remote: [] },
+  error: '',
+}
+
+const VISION_PROVIDERS = [
+  { value: '', label: '自动故障转移', hint: '使用所有已就绪引擎' },
+  { value: 'openai', label: 'OpenAI 兼容 API', hint: 'Qwen-VL、GLM-V、vLLM、Ollama 等' },
+  { value: 'gemini-api', label: 'Gemini API', hint: 'Google AI Studio，多模态直连' },
+  { value: 'anthropic', label: 'Anthropic API', hint: 'Claude 多模态接口' },
+  { value: 'antigravity-cli', label: 'Antigravity CLI', hint: '本机登录，无需 API Key' },
+  { value: 'claude-cli', label: 'Claude CLI', hint: '复用本机 Claude Code 登录' },
+]
+
 const ECOSYSTEM_COMPONENTS = [
   {
     name: '@liustack/modlens',
@@ -276,7 +297,7 @@ function PluginCard({ plugin, busy, onToggle, onRemove }) {
   )
 }
 
-function EcosystemCard({ component, installedPlugin, busy, onInstall }) {
+function EcosystemCard({ component, installedPlugin, busy, onInstall, onConfigure }) {
   const Icon = component.icon
   const installed = Boolean(installedPlugin)
   return (
@@ -295,6 +316,11 @@ function EcosystemCard({ component, installedPlugin, busy, onInstall }) {
         <button type="button" className="component-docs" onClick={() => studio.runtime.openUrl(component.url)}>
           <ExternalLink size={13} />说明
         </button>
+        {installed && component.name === '@liustack/modlens' ? (
+          <button type="button" className="component-configure" onClick={onConfigure}>
+            <Settings size={14} />配置视觉 API
+          </button>
+        ) : null}
         <button type="button" className="component-install" disabled={busy} onClick={() => onInstall(component.source)}>
           {busy ? <LoaderCircle className="spin" size={14} /> : installed ? <RefreshCw size={14} /> : <Package size={14} />}
           {installed ? '更新 / 修复' : '一键接入'}
@@ -318,7 +344,7 @@ function SkillCard({ skill, busy, onRemove }) {
   )
 }
 
-function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onImportSkill, onInstall, onRefresh, onRefreshSkills, onRemove, onRemoveSkill, onToggle, toast }) {
+function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfigureModlens, onImportSkill, onInstall, onRefresh, onRefreshSkills, onRemove, onRemoveSkill, onToggle, toast }) {
   const [tab, setTab] = useState('installed')
   const [source, setSource] = useState('')
   const [query, setQuery] = useState('')
@@ -397,6 +423,7 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onImport
                 installedPlugin={installedByName.get(component.name)}
                 busy={busy}
                 onInstall={onInstall}
+                onConfigure={onConfigureModlens}
               />
             ))}
           </div>
@@ -508,7 +535,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.3.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.4.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -527,7 +554,162 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
   )
 }
 
-function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, updateStatus, onCheckUpdate, onDownloadUpdate, onInstallUpdate, onClose, onRestart, onSave, toast }) {
+function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
+  const summary = status.config
+  const [draft, setDraft] = useState({ provider: '', apiKey: '', baseUrl: '', model: '' })
+
+  useEffect(() => {
+    const provider = summary?.provider || ''
+    const engine = summary?.engines?.[provider] || {}
+    setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || '', model: engine.model || '' })
+  }, [summary])
+
+  const chooseProvider = (provider) => {
+    const engine = summary?.engines?.[provider] || {}
+    setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || '', model: engine.model || '' })
+  }
+  const engineSummary = summary?.engines?.[draft.provider] || {}
+  const providerHealth = status.providers.find((provider) => provider.name === draft.provider)
+  const apiProvider = ['openai', 'gemini-api', 'anthropic'].includes(draft.provider)
+  const keyReady = Boolean(draft.apiKey.trim() || engineSummary.hasKey)
+  const missing = []
+  if (draft.provider === 'openai') {
+    if (!draft.baseUrl.trim()) missing.push('接口地址')
+    if (!keyReady) missing.push('API Key')
+    if (!draft.model.trim()) missing.push('模型名称')
+  } else if (['gemini-api', 'anthropic'].includes(draft.provider) && !keyReady) {
+    missing.push('API Key')
+  }
+  const pristine = summary?.engines?.[draft.provider] || {}
+  const dirty = Boolean(
+    summary
+    && (draft.provider !== (summary.provider || '')
+      || draft.apiKey.trim()
+      || (apiProvider && draft.baseUrl.trim() !== (pristine.baseUrl || ''))
+      || (apiProvider && draft.model.trim() !== (pristine.model || ''))),
+  )
+  let insecureEndpoint = false
+  try {
+    const endpoint = new URL(draft.baseUrl)
+    insecureEndpoint = endpoint.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(endpoint.hostname)
+  } catch {
+    insecureEndpoint = false
+  }
+
+  const submit = () => {
+    const patch = { provider: draft.provider }
+    if (apiProvider) {
+      Object.assign(patch, {
+        engine: draft.provider,
+        apiKey: draft.apiKey,
+        baseUrl: draft.baseUrl,
+        model: draft.model,
+      })
+    }
+    onSave(patch)
+  }
+
+  return (
+    <div className={cx('vision-card', status.phase)}>
+      <div className="vision-card-head">
+        <span className="vision-card-icon"><Eye size={19} /></span>
+        <div>
+          <div className="vision-card-title">
+            <strong>ModLens 视觉 API</strong>
+            {status.version ? <span>v{status.version}</span> : null}
+          </div>
+          <p>{status.message}</p>
+        </div>
+        <span className={cx('vision-state', status.phase)}>
+          {busy ? '检测中' : status.phase === 'ready' ? '已就绪' : status.phase === 'degraded' ? '有备用引擎' : status.phase === 'missing' ? '未安装' : status.phase === 'error' ? '异常' : '待配置'}
+        </span>
+      </div>
+
+      {status.installed && summary ? (
+        <>
+          <label className="vision-field">
+            <span>视觉引擎</span>
+            <select value={draft.provider} onChange={(event) => chooseProvider(event.target.value)}>
+              {VISION_PROVIDERS.map((provider) => <option key={provider.value || 'auto'} value={provider.value}>{provider.label} · {provider.hint}</option>)}
+            </select>
+          </label>
+
+          {draft.provider === '' ? (
+            <div className="vision-auto-note">
+              <Sparkles size={16} />
+              <div><strong>自动模式不会自动提供模型</strong><p>它只会在已经配置或登录的引擎之间故障转移。请选择一个 API 引擎填写配置，或先登录受支持的本地 CLI。</p></div>
+            </div>
+          ) : apiProvider ? (
+            <div className="vision-fields">
+              <label className="vision-field">
+                <span>API Key <small>{engineSummary.hasKey ? '已安全保存，留空不修改' : '尚未设置'}</small></span>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  value={draft.apiKey}
+                  onChange={(event) => setDraft((current) => ({ ...current, apiKey: event.target.value }))}
+                  placeholder={engineSummary.hasKey ? '••••••••••••••••' : '粘贴服务商提供的密钥'}
+                />
+              </label>
+              <label className="vision-field">
+                <span>接口地址 <small>{draft.provider === 'openai' ? '必填，不会替你猜测端点' : '可选，留空使用官方默认'}</small></span>
+                <input
+                  type="url"
+                  spellCheck="false"
+                  value={draft.baseUrl}
+                  onChange={(event) => setDraft((current) => ({ ...current, baseUrl: event.target.value }))}
+                  placeholder={draft.provider === 'openai' ? 'https://example.com/v1' : '留空使用 Provider 默认地址'}
+                />
+              </label>
+              <label className="vision-field">
+                <span>视觉模型 <small>{draft.provider === 'openai' ? '必须支持图片输入' : '可选，留空使用推荐模型'}</small></span>
+                <input
+                  type="text"
+                  spellCheck="false"
+                  value={draft.model}
+                  onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))}
+                  placeholder={draft.provider === 'openai' ? '例如 qwen3-vl-plus' : '使用 Provider 默认模型'}
+                />
+              </label>
+              {insecureEndpoint ? <p className="vision-warning"><CircleAlert size={14} />非本机 HTTP 地址会明文传输密钥和图片，建议改用 HTTPS。</p> : null}
+            </div>
+          ) : (
+            <div className={cx('vision-cli-note', providerHealth?.ready && 'ready')}>
+              <TerminalSquare size={17} />
+              <div>
+                <strong>{providerHealth?.ready ? '本机 CLI 已发现' : '本机 CLI 尚未就绪'}</strong>
+                <p>{providerHealth?.detail || '该引擎通过本机登录工作，不需要 API Key。'}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="vision-actions">
+            <button className="secondary-button compact-button" type="button" disabled={busy} onClick={onRefresh}>
+              {busy ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}检测引擎
+            </button>
+            <button className="primary-button compact-button" type="button" disabled={busy || !dirty || missing.length > 0} onClick={submit}>
+              <ShieldCheck size={14} />保存并重启
+            </button>
+          </div>
+          {missing.length ? <p className="vision-missing">还需填写：{missing.join('、')}</p> : null}
+          <div className="vision-usage">
+            <strong><Check size={14} />配置完成后怎么用</strong>
+            <p>在 Harness 模型选择器中选名称带 <code>(modlens vision)</code> 的文本模型，然后直接粘贴图片并提问；也支持在消息中提供图片绝对路径。</p>
+          </div>
+          <p className="vision-security"><ShieldCheck size={13} />密钥只写入本机 <code>~/.modlens/config.json</code>，不会进入工作区、Git 仓库或界面回显。</p>
+        </>
+      ) : (
+        <div className="vision-empty">
+          <Eye size={22} />
+          <div><strong>{status.installed ? '设置接口暂不可用' : '先接入 ModLens 插件'}</strong><p>{status.error || '打开“插件 → 生态组件”，安装后再回到这里配置视觉 API。'}</p></div>
+          <button className="secondary-button compact-button" type="button" disabled={busy} onClick={onRefresh}><RefreshCw size={14} />重新检测</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, updateStatus, modlensStatus, modlensBusy, onCheckModlens, onSaveModlens, onCheckUpdate, onDownloadUpdate, onInstallUpdate, onClose, onRestart, onSave, toast }) {
   const chooseWorkspace = async () => {
     const selected = await studio.settings.chooseWorkspace()
     if (selected) setSettings((current) => ({ ...current, workspace: selected }))
@@ -539,6 +721,11 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
         <IconButton title="关闭设置" onClick={onClose}><PanelRightClose size={18} /></IconButton>
       </div>
       <div className="panel-body settings-body">
+        <section>
+          <div className="section-label"><span>视觉能力</span></div>
+          <VisionSettingsCard status={modlensStatus} busy={modlensBusy} onRefresh={onCheckModlens} onSave={onSaveModlens} />
+        </section>
+
         <section>
           <div className="section-label"><span>运行环境</span></div>
           <SettingRow icon={FolderOpen} title="默认工作区" description="首次启动会自动创建；无需选择目录即可直接开始对话">
@@ -606,8 +793,10 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.3.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.3.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '' })
+  const [appInfo, setAppInfo] = useState({ version: '1.4.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.4.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '' })
+  const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
+  const [modlensBusy, setModlensBusy] = useState(false)
   const [busy, setBusy] = useState(false)
   const [skillBusy, setSkillBusy] = useState(false)
   const [pluginLogs, setPluginLogs] = useState([])
@@ -632,6 +821,13 @@ export default function App() {
   const refreshSkills = useCallback(async () => {
     try { setSkillInventory(await studio.skills.list()) }
     catch (error) { notify(error.message || String(error), 'error') }
+  }, [notify])
+
+  const refreshModlens = useCallback(async () => {
+    setModlensBusy(true)
+    try { setModlensStatus(await studio.modlens.status()) }
+    catch (error) { notify(error.message || String(error), 'error') }
+    finally { setModlensBusy(false) }
   }, [notify])
 
   useEffect(() => {
@@ -666,6 +862,10 @@ export default function App() {
       disposeStatus?.(); disposeRuntimeLog?.(); disposePluginLog?.(); disposeBusy?.(); disposeMaximized?.(); disposePathDetected?.(); disposeUpdate?.()
     }
   }, [notify, refreshPlugins, refreshSkills])
+
+  useEffect(() => {
+    if (panel === 'settings') refreshModlens()
+  }, [panel, refreshModlens])
 
   useEffect(() => {
     if (!isElectron || !webviewRef.current || runtime.phase !== 'running') return undefined
@@ -756,6 +956,22 @@ export default function App() {
     } catch (error) { notify(error.message || String(error), 'error') }
   }
 
+  const saveModlens = async (patch) => {
+    setModlensBusy(true)
+    try {
+      setWebReady(false)
+      const next = await studio.modlens.save(patch)
+      setModlensStatus(next)
+      setRuntime(await studio.runtime.status())
+      setWebKey((value) => value + 1)
+      notify('视觉 API 已保存，Harness 已重启')
+    } catch (error) {
+      notify(error.message || String(error), 'error')
+    } finally {
+      setModlensBusy(false)
+    }
+  }
+
   const checkUpdate = async () => {
     try { setUpdateStatus(await studio.updates.check()) }
     catch (error) { notify(error.message || String(error), 'error') }
@@ -809,6 +1025,7 @@ export default function App() {
             skillInventory={skillInventory}
             logs={pluginLogs}
             onClose={() => setPanel(null)}
+            onConfigureModlens={() => setPanel('settings')}
             onImportSkill={importSkill}
             onInstall={installPlugin}
             onRefresh={refreshPlugins}
@@ -827,6 +1044,10 @@ export default function App() {
             settings={settings}
             setSettings={setSettings}
             updateStatus={updateStatus}
+            modlensStatus={modlensStatus}
+            modlensBusy={modlensBusy}
+            onCheckModlens={refreshModlens}
+            onSaveModlens={saveModlens}
             onCheckUpdate={checkUpdate}
             onDownloadUpdate={downloadUpdate}
             onInstallUpdate={installUpdate}

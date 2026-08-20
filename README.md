@@ -12,6 +12,7 @@
 - 官方 Harness Web UI：会话、工作区、模型设置、工具调用、权限、Skills、子智能体等能力由 Harness 提供。
 - 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录。
 - 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、DSH Backup 和 DSH Screenshot 的版本化一键接入入口。
+- ModLens 视觉 API 设置：在 Studio 中配置 Gemini、Anthropic 或任意 OpenAI 兼容多模态端点，检测引擎状态并在保存后自动重启 Harness；API Key 不进入项目或 Git。
 - DSH Skill 管理：导入、发现和移除包含 `SKILL.md` 的本地技能包；Harness 可热刷新并通过 `/skill-name` 调用。
 - 插件启用 / 停用 / 卸载：直接管理 `~/.dsh/profiles/web` 的依赖与 bundles。
 - 安装过程日志、可信来源提示，以及插件变更后的 Harness 自动重启。
@@ -46,12 +47,14 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.3.0-x64.exe`：推荐的安装向导，可自定义安装目录、创建快捷方式并在完成后启动。
-- `DeepSeek-Harness-Studio-Portable-1.3.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.4.0-x64.exe`：推荐的安装向导，可自定义安装目录、创建快捷方式并在完成后启动。
+- `DeepSeek-Harness-Studio-Portable-1.4.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
 向其他电脑部署时，可直接分发安装程序；完整步骤和数据迁移说明见 [docs/INSTALL_CN.md](docs/INSTALL_CN.md)。精选组件及 ModLens 使用说明见 [docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)。版本更新与 GitHub 发布方法见 [docs/UPDATES_CN.md](docs/UPDATES_CN.md)。
+
+v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
 
 ## 插件导入
 
@@ -72,7 +75,8 @@ dsh plugin --profile web remove <package>
 
 ## 配置与故障排查
 
-- API Key、模型供应商与主题：进入 Harness 内部的“设置”。
+- 主智能体 API、模型供应商与主题：进入 Harness 内部的“设置”。
+- ModLens 视觉 API：进入 Studio 右上角“偏好设置 → 视觉能力”。主智能体可以继续使用 DeepSeek 文本模型；ModLens 另行调用一个支持图片输入的视觉模型。
 - Studio 偏好：窗口右上角齿轮。
 - Harness 数据：`%USERPROFILE%\.dsh`。
 - 默认 Web profile：`%USERPROFILE%\.dsh\profiles\web`。
@@ -89,6 +93,7 @@ electron/
   preload.cjs               安全的渲染层桥接
   lib/runtime-manager.cjs   Harness 生命周期与就绪探测
   lib/plugin-manager.cjs    社区插件清单、导入、启停与卸载
+  lib/modlens-manager.cjs   ModLens Provider 配置、状态诊断与安全代理
   lib/update-manager.cjs    GitHub Release 检测、下载与完整性校验
 src/
   App.jsx                   桌面界面
