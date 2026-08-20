@@ -20,7 +20,7 @@
 - 零配置新会话：首次启动自动创建并注册 `%USERPROFILE%\Documents\DeepSeek Harness\Workspace`。
 - 智能路径识别：聊天中出现 `E:\project`、`C:/work/app`、UNC 路径或具体文件时，自动识别并注册已有目录；显式路径优先于默认工作区。
 - 安装版与免安装版 Windows 可执行文件。
-- 应用内更新：启动后可自动检测 GitHub Releases，也可在设置页手动检查；下载安装包前强制验证 SHA-256，并由用户确认后原地覆盖升级。
+- 应用内更新：启动后可自动检测 GitHub Releases；下载支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256。
 - DeepSeek 官方 Harness 随附的鲸鱼图标，用于窗口和可执行文件。
 
 ## 开发运行
@@ -47,14 +47,16 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.4.0-x64.exe`：推荐的安装向导，可自定义安装目录、创建快捷方式并在完成后启动。
-- `DeepSeek-Harness-Studio-Portable-1.4.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.4.1-x64.exe`：推荐的安装向导，可自定义安装目录、创建快捷方式并在完成后启动。
+- `DeepSeek-Harness-Studio-Portable-1.4.1-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
 向其他电脑部署时，可直接分发安装程序；完整步骤和数据迁移说明见 [docs/INSTALL_CN.md](docs/INSTALL_CN.md)。精选组件及 ModLens 使用说明见 [docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)。版本更新与 GitHub 发布方法见 [docs/UPDATES_CN.md](docs/UPDATES_CN.md)。
 
 v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
+
+v1.4.1 的国内更新镜像、自动回退与校验策略见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
 
 ## 插件导入
 

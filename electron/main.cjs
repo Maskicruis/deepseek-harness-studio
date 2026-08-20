@@ -154,6 +154,8 @@ function registerSettingsIpc() {
     if (runtimeChanged) await runtime.restart()
     const updateSettingsChanged = previous.autoCheckUpdates !== next.autoCheckUpdates
       || previous.updateRepository !== next.updateRepository
+      || previous.updateDownloadMode !== next.updateDownloadMode
+      || previous.updateMirrorUrl !== next.updateMirrorUrl
     if (updateSettingsChanged && next.autoCheckUpdates && getUpdateRepository()) {
       setTimeout(() => updates?.check(), 250)
     }
@@ -259,6 +261,10 @@ app.whenReady().then(async () => {
   updates = new UpdateManager({
     currentVersion: app.getVersion(),
     getRepository: getUpdateRepository,
+    getDownloadOptions: () => ({
+      mode: settings.get().updateDownloadMode,
+      customMirror: settings.get().updateMirrorUrl,
+    }),
     updateDir: path.join(app.getPath('userData'), 'updates'),
   })
   runtime.on('status', (status) => emit('runtime:status-changed', status))

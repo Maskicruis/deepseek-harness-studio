@@ -8,7 +8,23 @@ const DEFAULT_SETTINGS = Object.freeze({
   closeToTray: false,
   autoCheckUpdates: true,
   updateRepository: '',
+  updateDownloadMode: 'auto',
+  updateMirrorUrl: '',
 })
+
+const UPDATE_DOWNLOAD_MODES = new Set(['auto', 'github', 'custom'])
+
+function sanitizeMirrorUrl(value) {
+  const source = typeof value === 'string' ? value.replace(/[\r\n\0]/g, '').trim().slice(0, 2048) : ''
+  if (!source) return ''
+  try {
+    const parsed = new URL(source)
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.search || parsed.hash) return ''
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return ''
+  }
+}
 
 class SettingsStore {
   constructor(filePath) {
@@ -36,6 +52,10 @@ class SettingsStore {
       updateRepository: typeof candidate.updateRepository === 'string'
         ? candidate.updateRepository.replace(/[\r\n]/g, '').trim().slice(0, 200)
         : '',
+      updateDownloadMode: UPDATE_DOWNLOAD_MODES.has(candidate.updateDownloadMode)
+        ? candidate.updateDownloadMode
+        : DEFAULT_SETTINGS.updateDownloadMode,
+      updateMirrorUrl: sanitizeMirrorUrl(candidate.updateMirrorUrl),
     }
   }
 
@@ -53,4 +73,4 @@ class SettingsStore {
   }
 }
 
-module.exports = { DEFAULT_SETTINGS, SettingsStore }
+module.exports = { DEFAULT_SETTINGS, SettingsStore, sanitizeMirrorUrl }

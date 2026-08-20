@@ -8,6 +8,9 @@ const path = require('node:path')
 const API_VERSION = '2022-11-28'
 const MAX_METADATA_BYTES = 2 * 1024 * 1024
 const MAX_REDIRECTS = 6
+const BUILT_IN_UPDATE_MIRRORS = Object.freeze([
+  Object.freeze({ id: 'gh-proxy', label: '国内社区镜像', baseUrl: 'https://gh-proxy.com' }),
+])
 
 function parseGitHubRepository(value) {
   const source = String(value || '').trim().replace(/\.git$/i, '').replace(/\/$/, '')
@@ -54,6 +57,40 @@ function assertHttps(url) {
   const parsed = new URL(url)
   if (parsed.protocol !== 'https:') throw new Error('更新服务只允许 HTTPS。')
   return parsed
+}
+
+function normalizeMirrorBase(value) {
+  const source = String(value || '').trim()
+  if (!source) return ''
+  try {
+    const parsed = assertHttps(source)
+    if (parsed.username || parsed.password || parsed.search || parsed.hash) return ''
+    return parsed.toString().replace(/\/$/, '')
+  } catch {
+    return ''
+  }
+}
+
+function buildDownloadCandidates(assetUrl, { mode = 'auto', customMirror = '' } = {}) {
+  const officialUrl = assertHttps(assetUrl).toString()
+  const candidates = []
+  const seen = new Set()
+  const add = (label, url, kind) => {
+    if (!url || seen.has(url)) return
+    seen.add(url)
+    candidates.push({ label, url, kind })
+  }
+  const addMirror = (label, baseUrl, kind) => {
+    const base = normalizeMirrorBase(baseUrl)
+    if (base) add(label, `${base}/${officialUrl}`, kind)
+  }
+
+  if (mode === 'custom') addMirror('自定义镜像', customMirror, 'custom')
+  else if (mode !== 'github') {
+    for (const mirror of BUILT_IN_UPDATE_MIRRORS) addMirror(mirror.label, mirror.baseUrl, 'mirror')
+  }
+  add('GitHub 官方线路', officialUrl, 'github')
+  return candidates
 }
 
 function requestBuffer(url, { headers = {}, maxBytes = MAX_METADATA_BYTES, redirects = MAX_REDIRECTS } = {}) {
@@ -136,11 +173,13 @@ function downloadFile(url, filePath, onProgress, redirects = MAX_REDIRECTS) {
 }
 
 class UpdateManager extends EventEmitter {
-  constructor({ currentVersion, getRepository, updateDir }) {
+  constructor({ currentVersion, getRepository, getDownloadOptions = () => ({}), updateDir, download = downloadFile }) {
     super()
     this.currentVersion = currentVersion
     this.getRepository = getRepository
+    this.getDownloadOptions = getDownloadOptions
     this.updateDir = updateDir
+    this.downloadFile = download
     this.release = null
     this.status = {
       phase: 'idle',
@@ -153,6 +192,8 @@ class UpdateManager extends EventEmitter {
       progress: 0,
       downloadedPath: '',
       checkedAt: '',
+      downloadSource: '',
+      downloadAttempts: [],
     }
   }
 
@@ -169,7 +210,7 @@ class UpdateManager extends EventEmitter {
   async check() {
     const parsed = parseGitHubRepository(this.getRepository())
     if (!parsed) return this.#set({ phase: 'unconfigured', message: '请先设置 GitHub 更新仓库（owner/repo）。', repository: '' })
-    this.#set({ phase: 'checking', message: '正在检查 GitHub Releases…', repository: parsed.slug, progress: 0, downloadedPath: '' })
+    this.#set({ phase: 'checking', message: '正在检查 GitHub Releases…', repository: parsed.slug, progress: 0, downloadedPath: '', downloadSource: '', downloadAttempts: [] })
     try {
       const release = await requestJson(`https://api.github.com/repos/${encodeURIComponent(parsed.owner)}/${encodeURIComponent(parsed.repo)}/releases/latest`)
       const latestVersion = String(release.tag_name || '').replace(/^v/i, '')
@@ -215,18 +256,51 @@ class UpdateManager extends EventEmitter {
     for (const candidate of [partialPath, finalPath]) {
       if (fs.existsSync(candidate)) fs.unlinkSync(candidate)
     }
-    this.#set({ phase: 'downloading', message: `正在下载 ${this.release.latestVersion}…`, progress: 0, downloadedPath: '' })
-    try {
-      const result = await downloadFile(this.release.asset.browser_download_url, partialPath, ({ percent }) => {
-        this.#set({ phase: 'downloading', progress: percent, message: `正在下载 ${this.release.latestVersion}… ${percent.toFixed(1)}%` })
-      })
-      if (result.sha256 !== this.release.expectedHash) throw new Error('安装包 SHA-256 校验失败，文件已丢弃。')
-      fs.renameSync(partialPath, finalPath)
-      return this.#set({ phase: 'downloaded', message: `版本 ${this.release.latestVersion} 已下载并通过校验`, progress: 100, downloadedPath: finalPath })
-    } catch (error) {
+    const options = this.getDownloadOptions?.() || {}
+    const candidates = buildDownloadCandidates(this.release.asset.browser_download_url, options)
+    const attempts = []
+    for (const candidate of candidates) {
       if (fs.existsSync(partialPath)) fs.unlinkSync(partialPath)
-      return this.#set({ phase: 'error', message: error.message || String(error), progress: 0, downloadedPath: '' })
+      this.#set({
+        phase: 'downloading',
+        message: `正在通过${candidate.label}下载 ${this.release.latestVersion}…`,
+        progress: 0,
+        downloadedPath: '',
+        downloadSource: candidate.label,
+        downloadAttempts: [...attempts],
+      })
+      try {
+        const result = await this.downloadFile(candidate.url, partialPath, ({ percent }) => {
+          this.#set({
+            phase: 'downloading',
+            progress: percent,
+            message: `正在通过${candidate.label}下载 ${this.release.latestVersion}… ${percent.toFixed(1)}%`,
+          })
+        })
+        if (result.sha256 !== this.release.expectedHash) throw new Error('SHA-256 校验失败')
+        fs.renameSync(partialPath, finalPath)
+        return this.#set({
+          phase: 'downloaded',
+          message: `版本 ${this.release.latestVersion} 已通过${candidate.label}下载并通过 SHA-256 校验`,
+          progress: 100,
+          downloadedPath: finalPath,
+          downloadSource: candidate.label,
+          downloadAttempts: [...attempts, { label: candidate.label, ok: true }],
+        })
+      } catch (error) {
+        if (fs.existsSync(partialPath)) fs.unlinkSync(partialPath)
+        attempts.push({ label: candidate.label, ok: false, error: error.message || String(error) })
+      }
     }
+    const detail = attempts.map((attempt) => `${attempt.label}：${attempt.error}`).join('；')
+    return this.#set({
+      phase: 'error',
+      message: `所有下载线路均失败。${detail}`.slice(0, 1200),
+      progress: 0,
+      downloadedPath: '',
+      downloadSource: '',
+      downloadAttempts: attempts,
+    })
   }
 
   install() {
@@ -239,12 +313,15 @@ class UpdateManager extends EventEmitter {
 }
 
 module.exports = {
+  BUILT_IN_UPDATE_MIRRORS,
   UpdateManager,
+  buildDownloadCandidates,
   compareVersions,
   downloadFile,
   parseChecksums,
   parseGitHubRepository,
   parseVersion,
+  normalizeMirrorBase,
   requestBuffer,
   requestJson,
   selectReleaseAsset,

@@ -17,11 +17,19 @@ test('settings store persists sanitized values', () => {
     closeToTray: false,
     autoCheckUpdates: true,
     updateRepository: '',
+    updateDownloadMode: 'auto',
+    updateMirrorUrl: '',
   })
   store.set({ port: 80 })
   assert.equal(store.get().port, 3080)
   store.set({ autoCheckUpdates: false, updateRepository: '  owner/repository\r\n' })
   assert.equal(store.get().autoCheckUpdates, false)
   assert.equal(store.get().updateRepository, 'owner/repository')
+  store.set({ updateDownloadMode: 'custom', updateMirrorUrl: 'https://mirror.example.com/ghproxy/' })
+  assert.equal(store.get().updateDownloadMode, 'custom')
+  assert.equal(store.get().updateMirrorUrl, 'https://mirror.example.com/ghproxy')
+  store.set({ updateDownloadMode: 'invalid', updateMirrorUrl: 'http://mirror.example.com/' })
+  assert.equal(store.get().updateDownloadMode, 'auto')
+  assert.equal(store.get().updateMirrorUrl, '')
   fs.rmSync(temporary, { recursive: true, force: true })
 })

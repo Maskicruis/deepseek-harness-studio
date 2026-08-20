@@ -535,12 +535,12 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.4.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.4.1'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
       <div className="update-card-footer">
-        <span>{status.repository || '等待配置 GitHub 仓库'}{checkedAt ? ` · ${checkedAt}` : ''}</span>
+        <span>{status.repository || '等待配置 GitHub 仓库'}{status.downloadSource ? ` · ${status.downloadSource}` : ''}{checkedAt ? ` · ${checkedAt}` : ''}</span>
         <div>
           {status.releaseUrl ? <button className="text-button" type="button" onClick={() => studio.runtime.openUrl(status.releaseUrl)}><Github size={14} />发布页</button> : null}
           {status.phase === 'downloaded'
@@ -761,6 +761,29 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
               onChange={(event) => setSettings((current) => ({ ...current, updateRepository: event.target.value }))}
             />
           </SettingRow>
+          <SettingRow icon={Download} title="更新下载线路" description="自动模式优先国内社区镜像，失败后回退 GitHub；安装前始终校验 SHA-256">
+            <select
+              className="route-select"
+              value={settings.updateDownloadMode || 'auto'}
+              onChange={(event) => setSettings((current) => ({ ...current, updateDownloadMode: event.target.value }))}
+            >
+              <option value="auto">自动（国内优先）</option>
+              <option value="github">仅 GitHub</option>
+              <option value="custom">自定义镜像</option>
+            </select>
+          </SettingRow>
+          {settings.updateDownloadMode === 'custom' ? (
+            <SettingRow icon={Globe2} title="自定义镜像前缀" description="兼容 gh-proxy 的完整 URL 转发格式；失败时仍会回退 GitHub">
+              <input
+                className="repo-input"
+                type="url"
+                spellCheck="false"
+                placeholder="https://mirror.example.com"
+                value={settings.updateMirrorUrl || ''}
+                onChange={(event) => setSettings((current) => ({ ...current, updateMirrorUrl: event.target.value }))}
+              />
+            </SettingRow>
+          ) : null}
           <UpdateCard status={updateStatus} onCheck={onCheckUpdate} onDownload={onDownloadUpdate} onInstall={onInstallUpdate} />
         </section>
 
@@ -791,10 +814,10 @@ export default function App() {
   const [panel, setPanel] = useState(null)
   const [inventory, setInventory] = useState({ core: [], community: [], count: 0, profileDir: '' })
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
-  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '' })
+  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.4.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.4.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '' })
+  const [appInfo, setAppInfo] = useState({ version: '1.4.1', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.4.1', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -947,6 +970,15 @@ export default function App() {
   }
 
   const saveSettings = async () => {
+    if (settings.updateDownloadMode === 'custom') {
+      try {
+        const mirror = new URL(settings.updateMirrorUrl)
+        if (mirror.protocol !== 'https:' || mirror.username || mirror.password || mirror.search || mirror.hash) throw new Error('invalid')
+      } catch {
+        notify('自定义更新镜像必须是无账号、无查询参数的 HTTPS 地址', 'error')
+        return
+      }
+    }
     try {
       const result = await studio.settings.set(settings)
       setSettings(result.settings)

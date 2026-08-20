@@ -32,17 +32,21 @@ function createBrowserMock() {
     closeToTray: false,
     autoCheckUpdates: true,
     updateRepository: 'deepseek-harness-studio/deepseek-harness-studio',
+    updateDownloadMode: 'auto',
+    updateMirrorUrl: '',
   }
   let updateStatus = {
     phase: 'available',
     message: '发现新版本 1.5.0',
-    currentVersion: '1.4.0',
+    currentVersion: '1.4.1',
     latestVersion: '1.5.0',
     repository: settings.updateRepository,
     releaseUrl: 'https://github.com/',
     notes: '性能优化、插件体验改进与错误修复。',
     progress: 0,
     downloadedPath: '',
+    downloadSource: '',
+    downloadAttempts: [],
     checkedAt: new Date().toISOString(),
   }
   let modlensStatus = {
@@ -75,7 +79,7 @@ function createBrowserMock() {
   }
   return {
     isMock: true,
-    app: { info: async () => ({ version: '1.4.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
+    app: { info: async () => ({ version: '1.4.1', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
     window: {
       minimize() {}, toggleMaximize() {}, close() {},
       isMaximized: async () => false,
@@ -99,7 +103,7 @@ function createBrowserMock() {
     updates: {
       status: async () => updateStatus,
       check: async () => updateStatus,
-      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.5.0 已下载并通过校验', progress: 100, downloadedPath: 'update.exe' }),
+      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.5.0 已通过国内社区镜像下载并通过 SHA-256 校验', progress: 100, downloadedPath: 'update.exe', downloadSource: '国内社区镜像' }),
       install: async () => ({ launched: true }),
       onStatus: () => () => {},
     },
