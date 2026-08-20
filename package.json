@@ -23,8 +23,8 @@
     "runtime:prepare": "node scripts/prepare-runtime.cjs",
     "test": "node --test tests/*.test.cjs",
     "pack": "npm run build:web && npm run runtime:prepare && electron-builder --dir --win",
-    "dist:setup": "npm run test && npm run build:web && npm run runtime:prepare && electron-builder --win nsis",
-    "dist": "npm run test && npm run build:web && npm run runtime:prepare && electron-builder --win nsis portable"
+    "dist:setup": "npm run test && npm run build:web && npm run runtime:prepare && electron-builder --win nsis --publish never",
+    "dist": "npm run test && npm run build:web && npm run runtime:prepare && electron-builder --win nsis portable --publish never"
   },
   "dependencies": {
     "@deepseek-ai/cordis-plugin-group": "1.0.1",
