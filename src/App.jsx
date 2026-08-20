@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArchiveRestore,
   Blocks,
@@ -33,6 +33,7 @@ import {
   Square,
   TerminalSquare,
   Trash2,
+  Wallet,
   X,
   Zap,
 } from 'lucide-react'
@@ -61,6 +62,7 @@ const EMPTY_MODLENS_STATUS = {
 
 const VISION_PROVIDERS = [
   { value: '', label: '自动故障转移', hint: '使用所有已就绪引擎' },
+  { value: 'qwen', label: '阿里千问 Qwen-VL', hint: '阿里云百炼 DashScope，国内直连' },
   { value: 'openai', label: 'OpenAI 兼容 API', hint: 'Qwen-VL、GLM-V、vLLM、Ollama 等' },
   { value: 'gemini-api', label: 'Gemini API', hint: 'Google AI Studio，多模态直连' },
   { value: 'anthropic', label: 'Anthropic API', hint: 'Claude 多模态接口' },
@@ -168,13 +170,17 @@ function StatusPill({ runtime }) {
   )
 }
 
-function TitleBar({ runtime, updateStatus, panel, setPanel, onReload, isMaximized }) {
+function TitleBar({ runtime, updateStatus, panel, setPanel, onReload, isMaximized, balance, onRefreshBalance }) {
   const updateActive = ['available', 'downloading', 'downloaded'].includes(updateStatus.phase)
   const updateLabel = updateStatus.phase === 'downloading'
     ? `更新 ${Math.round(updateStatus.progress || 0)}%`
     : updateActive && updateStatus.latestVersion
       ? `更新 ${updateStatus.latestVersion}`
       : '更新'
+  let balanceLabel = balance ? (balance.ok ? balance.balanceInfos?.[0]?.total_balance || '0.00' : balance.configured ? '查询失败' : '未配置 Key') : '…'
+  if (balance?.ok && balance.balanceInfos?.[0]?.currency && balanceLabel && balanceLabel !== '查询失败' && balanceLabel !== '未配置 Key' && balanceLabel !== '…') {
+    balanceLabel = `¥ ${balanceLabel}`
+  }
   return (
     <header className="titlebar">
       <div className="brand drag-region">
@@ -186,6 +192,15 @@ function TitleBar({ runtime, updateStatus, panel, setPanel, onReload, isMaximize
       </div>
       <div className="titlebar-center drag-region"><StatusPill runtime={runtime} /></div>
       <div className="titlebar-actions no-drag">
+        <button
+          type="button"
+          className={cx('toolbar-button', 'balance-button', balance?.ok && 'ok', balance?.configured === false && 'warn')}
+          title={balance?.message || (balance?.ok ? `余额 ${balanceLabel}（点击刷新）` : '点击刷新余额')}
+          onClick={onRefreshBalance}
+        >
+          <Wallet size={15} />
+          <span>{balanceLabel}</span>
+        </button>
         <IconButton title="重新载入界面" onClick={onReload}><RefreshCw size={16} /></IconButton>
         <button
           type="button"
@@ -535,7 +550,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.4.1'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.5.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -566,17 +581,27 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
 
   const chooseProvider = (provider) => {
     const engine = summary?.engines?.[provider] || {}
-    setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || '', model: engine.model || '' })
+    const openaiEngine = summary?.engines?.openai || {}
+    if (provider === 'qwen') {
+      setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || openaiEngine.baseUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: engine.model || openaiEngine.model || 'qwen-vl-max' })
+    } else {
+      setDraft({ provider, apiKey: '', baseUrl: engine.baseUrl || '', model: engine.model || '' })
+    }
   }
   const engineSummary = summary?.engines?.[draft.provider] || {}
+  // 阿里千问底层复用 openai 引擎（DashScope 兼容端点），配置状态从 openai 派生
+  const qwenUnderlying = draft.provider === 'qwen' ? summary?.engines?.openai || {} : {}
+  const effectiveEngineSummary = draft.provider === 'qwen' ? { ...engineSummary, hasKey: Boolean(engineSummary.hasKey || qwenUnderlying.hasKey), baseUrl: engineSummary.baseUrl || qwenUnderlying.baseUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: engineSummary.model || qwenUnderlying.model || 'qwen-vl-max' } : engineSummary
   const providerHealth = status.providers.find((provider) => provider.name === draft.provider)
-  const apiProvider = ['openai', 'gemini-api', 'anthropic'].includes(draft.provider)
-  const keyReady = Boolean(draft.apiKey.trim() || engineSummary.hasKey)
+  const apiProvider = ['openai', 'gemini-api', 'anthropic', 'qwen'].includes(draft.provider)
+  const keyReady = Boolean(draft.apiKey.trim() || effectiveEngineSummary.hasKey)
   const missing = []
   if (draft.provider === 'openai') {
     if (!draft.baseUrl.trim()) missing.push('接口地址')
     if (!keyReady) missing.push('API Key')
     if (!draft.model.trim()) missing.push('模型名称')
+  } else if (draft.provider === 'qwen') {
+    if (!keyReady) missing.push('API Key')
   } else if (['gemini-api', 'anthropic'].includes(draft.provider) && !keyReady) {
     missing.push('API Key')
   }
@@ -585,8 +610,8 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
     summary
     && (draft.provider !== (summary.provider || '')
       || draft.apiKey.trim()
-      || (apiProvider && draft.baseUrl.trim() !== (pristine.baseUrl || ''))
-      || (apiProvider && draft.model.trim() !== (pristine.model || ''))),
+      || (apiProvider && draft.baseUrl.trim() !== (pristine.baseUrl || effectiveEngineSummary.baseUrl || ''))
+      || (apiProvider && draft.model.trim() !== (pristine.model || effectiveEngineSummary.model || ''))),
   )
   let insecureEndpoint = false
   try {
@@ -602,8 +627,8 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
       Object.assign(patch, {
         engine: draft.provider,
         apiKey: draft.apiKey,
-        baseUrl: draft.baseUrl,
-        model: draft.model,
+        baseUrl: draft.provider === 'qwen' && !draft.baseUrl.trim() ? 'https://dashscope.aliyuncs.com/compatible-mode/v1' : draft.baseUrl,
+        model: draft.provider === 'qwen' && !draft.model.trim() ? 'qwen-vl-max' : draft.model,
       })
     }
     onSave(patch)
@@ -652,23 +677,23 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
                 />
               </label>
               <label className="vision-field">
-                <span>接口地址 <small>{draft.provider === 'openai' ? '必填，不会替你猜测端点' : '可选，留空使用官方默认'}</small></span>
+                <span>接口地址 <small>{draft.provider === 'openai' ? '必填，不会替你猜测端点' : draft.provider === 'qwen' ? '已默认阿里云百炼兼容端点' : '可选，留空使用官方默认'}</small></span>
                 <input
                   type="url"
                   spellCheck="false"
                   value={draft.baseUrl}
                   onChange={(event) => setDraft((current) => ({ ...current, baseUrl: event.target.value }))}
-                  placeholder={draft.provider === 'openai' ? 'https://example.com/v1' : '留空使用 Provider 默认地址'}
+                  placeholder={draft.provider === 'openai' ? 'https://example.com/v1' : draft.provider === 'qwen' ? 'https://dashscope.aliyuncs.com/compatible-mode/v1' : '留空使用 Provider 默认地址'}
                 />
               </label>
               <label className="vision-field">
-                <span>视觉模型 <small>{draft.provider === 'openai' ? '必须支持图片输入' : '可选，留空使用推荐模型'}</small></span>
+                <span>视觉模型 <small>{draft.provider === 'openai' ? '必须支持图片输入' : draft.provider === 'qwen' ? '默认 qwen-vl-max' : '可选，留空使用推荐模型'}</small></span>
                 <input
                   type="text"
                   spellCheck="false"
                   value={draft.model}
                   onChange={(event) => setDraft((current) => ({ ...current, model: event.target.value }))}
-                  placeholder={draft.provider === 'openai' ? '例如 qwen3-vl-plus' : '使用 Provider 默认模型'}
+                  placeholder={draft.provider === 'openai' ? '例如 qwen3-vl-plus' : draft.provider === 'qwen' ? 'qwen-vl-max' : '使用 Provider 默认模型'}
                 />
               </label>
               {insecureEndpoint ? <p className="vision-warning"><CircleAlert size={14} />非本机 HTTP 地址会明文传输密钥和图片，建议改用 HTTPS。</p> : null}
@@ -816,10 +841,12 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.4.1', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.4.1', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.5.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.5.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
+  const [balance, setBalance] = useState(null)
+  const [balanceBusy, setBalanceBusy] = useState(false)
   const [busy, setBusy] = useState(false)
   const [skillBusy, setSkillBusy] = useState(false)
   const [pluginLogs, setPluginLogs] = useState([])
@@ -852,6 +879,18 @@ export default function App() {
     catch (error) { notify(error.message || String(error), 'error') }
     finally { setModlensBusy(false) }
   }, [notify])
+
+  const refreshBalance = useCallback(async () => {
+    if (!isElectron) return
+    setBalanceBusy(true)
+    try { setBalance(await studio.balance.get()) }
+    catch (error) { setBalance({ ok: false, configured: true, message: error.message || String(error) }) }
+    finally { setBalanceBusy(false) }
+  }, [])
+
+  useEffect(() => {
+    if (isElectron) refreshBalance()
+  }, [refreshBalance])
 
   useEffect(() => {
     Promise.all([studio.runtime.status(), studio.settings.get(), studio.runtime.paths(), studio.app.info(), studio.window.isMaximized(), studio.updates.status()])
@@ -1030,7 +1069,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <TitleBar runtime={runtime} updateStatus={updateStatus} panel={panel} setPanel={setPanel} onReload={reloadWeb} isMaximized={isMaximized} />
+      <TitleBar runtime={runtime} updateStatus={updateStatus} panel={panel} setPanel={setPanel} onReload={reloadWeb} isMaximized={isMaximized} balance={balance} onRefreshBalance={refreshBalance} />
       <main className="workspace-surface">
         {showRuntime ? (
           <div className={cx('harness-frame', webReady && 'ready')}>

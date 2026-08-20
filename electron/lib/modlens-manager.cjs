@@ -3,9 +3,15 @@ const fs = require('node:fs')
 const http = require('node:http')
 const path = require('node:path')
 
-const ENGINES = Object.freeze(['antigravity-cli', 'gemini-api', 'openai', 'anthropic', 'claude-cli'])
-const API_ENGINES = new Set(['gemini-api', 'openai', 'anthropic'])
+const ENGINES = Object.freeze(['antigravity-cli', 'gemini-api', 'openai', 'anthropic', 'claude-cli', 'qwen'])
+const API_ENGINES = new Set(['gemini-api', 'openai', 'anthropic', 'qwen'])
 const REUSE_HARNESSES = Object.freeze(['claude', 'codex', 'opencode', 'pi', 'grok'])
+// 阿里千问（Qwen-VL）通过阿里云百炼 DashScope 的 OpenAI 兼容端点接入，
+// 底层复用 modlens 的 openai 引擎。
+const QWEN_DEFAULTS = Object.freeze({
+  baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  model: 'qwen-vl-max',
+})
 
 function cleanText(value, field, maximum) {
   if (typeof value !== 'string') throw new Error(`${field} 必须是文本。`)
@@ -178,12 +184,33 @@ function summarizeStatus({ installed, version, config, doctor, configError = '',
     phase = 'error'
     message = `ModLens 诊断失败：${doctorError}`
   }
+  // 把阿里千问引擎并入展示配置：底层是 openai 引擎（DashScope 兼容端点）
+  let displayConfig = config || null
+  if (displayConfig) {
+    const openaiEngine = displayConfig.engines?.openai || {}
+    const isQwenEndpoint = typeof openaiEngine.baseUrl === 'string' && openaiEngine.baseUrl.includes('dashscope.aliyuncs.com')
+    displayConfig = {
+      ...displayConfig,
+      engines: {
+        ...(displayConfig.engines || {}),
+        qwen: {
+          baseUrl: isQwenEndpoint ? openaiEngine.baseUrl : QWEN_DEFAULTS.baseUrl,
+          model: isQwenEndpoint ? openaiEngine.model || QWEN_DEFAULTS.model : QWEN_DEFAULTS.model,
+          hasKey: openaiEngine.hasKey === true,
+          source: isQwenEndpoint ? openaiEngine.source || 'file' : '',
+        },
+      },
+    }
+    if (isQwenEndpoint && (!displayConfig.provider || displayConfig.provider === 'openai')) {
+      displayConfig = { ...displayConfig, provider: 'qwen' }
+    }
+  }
   return {
     installed: true,
     version,
     phase,
     message,
-    config: config || null,
+    config: displayConfig,
     providers,
     selection: doctor?.selection || null,
     chains: doctor?.chains || { local: [], remote: [] },
@@ -225,11 +252,19 @@ class ModlensManager {
 
   async save(input) {
     const patch = validatePatch(input)
+    const body = { ...patch }
+    // 阿里千问：映射到 modlens 的 openai 引擎（DashScope OpenAI 兼容端点）
+    if (patch.engine === 'qwen') {
+      body.engine = 'openai'
+      body.baseUrl = patch.baseUrl || QWEN_DEFAULTS.baseUrl
+      body.model = patch.model || QWEN_DEFAULTS.model
+      body.provider = body.provider === 'qwen' ? 'openai' : body.provider
+    }
     return this.request({
       port: this.getPort(),
       method: 'POST',
       requestPath: '/modlens/config',
-      body: patch,
+      body,
     })
   }
 

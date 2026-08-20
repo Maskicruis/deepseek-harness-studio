@@ -1,4 +1,4 @@
-const mockInventory = {
+﻿const mockInventory = {
   profileDir: '~/.dsh/profiles/web',
   core: [
     { name: '@deepseek-ai/dsh-base', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core' },
@@ -38,7 +38,7 @@ function createBrowserMock() {
   let updateStatus = {
     phase: 'available',
     message: '发现新版本 1.5.0',
-    currentVersion: '1.4.1',
+    currentVersion: '1.5.0',
     latestVersion: '1.5.0',
     repository: settings.updateRepository,
     releaseUrl: 'https://github.com/',
@@ -53,7 +53,7 @@ function createBrowserMock() {
     installed: true,
     version: '3.22.0',
     phase: 'unconfigured',
-    message: '尚未配置可用视觉引擎。建议接入 Gemini API 或 OpenAI 兼容视觉接口。',
+    message: '尚未配置可用视觉引擎。建议接入阿里千问或 OpenAI 兼容视觉接口。',
     config: {
       provider: '',
       engines: {
@@ -62,6 +62,7 @@ function createBrowserMock() {
         openai: { baseUrl: '', model: '', hasKey: false, source: '' },
         anthropic: { baseUrl: '', model: '', hasKey: false, source: '' },
         'claude-cli': { baseUrl: '', model: '', hasKey: false, source: '' },
+        qwen: { baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-vl-max', hasKey: false, source: '' },
       },
       keyless: ['antigravity-cli', 'claude-cli'],
       reuse: { claude: true, codex: false, opencode: false, pi: false, grok: false },
@@ -72,6 +73,7 @@ function createBrowserMock() {
       { name: 'openai', kind: 'api', ready: false, status: 'missing', detail: 'missing: baseUrl, apiKey, model', missing: ['baseUrl', 'apiKey', 'model'] },
       { name: 'anthropic', kind: 'api', ready: false, status: 'missing', detail: 'missing: apiKey', missing: ['apiKey'] },
       { name: 'claude-cli', kind: 'subprocess', ready: true, status: 'installed', detail: 'Claude CLI 已安装（登录状态需实际调用确认）', missing: [] },
+      { name: 'qwen', kind: 'api', ready: false, status: 'missing', detail: 'missing: apiKey（阿里云百炼 DashScope）', missing: ['apiKey'] },
     ],
     selection: { provider: 'antigravity-cli', canonical: 'antigravity-cli', source: 'default' },
     chains: { local: ['claude-cli'], remote: [] },
@@ -79,7 +81,7 @@ function createBrowserMock() {
   }
   return {
     isMock: true,
-    app: { info: async () => ({ version: '1.4.1', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
+    app: { info: async () => ({ version: '1.5.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
     window: {
       minimize() {}, toggleMaximize() {}, close() {},
       isMaximized: async () => false,
@@ -132,6 +134,15 @@ function createBrowserMock() {
           hasKey: Boolean(patch.apiKey || engines[patch.engine]?.hasKey),
           source: 'file',
         }
+        if (patch.engine === 'qwen' && patch.apiKey) {
+          engines.openai = {
+            ...engines.openai,
+            baseUrl: patch.baseUrl || 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+            model: patch.model || 'qwen-vl-max',
+            hasKey: true,
+            source: 'file',
+          }
+        }
         modlensStatus = {
           ...modlensStatus,
           phase: provider ? 'ready' : 'degraded',
@@ -140,6 +151,14 @@ function createBrowserMock() {
         }
         return modlensStatus
       },
+    },
+    balance: {
+      get: async () => ({
+        ok: true,
+        configured: true,
+        isAvailable: true,
+        balanceInfos: [{ currency: 'CNY', total_balance: '88.88', granted_balance: '8.00', topped_up_balance: '80.88' }],
+      }),
     },
     skills: {
       list: async () => mockSkills,

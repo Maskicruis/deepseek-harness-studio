@@ -64,6 +64,10 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .toolbar-button { gap: 7px; height: 32px; padding: 0 10px; border-radius: 8px; font-size: 12px; }
 .update-toolbar.update-ready { color: #dce4ff; background: rgba(77, 107, 254, 0.14); }
 .update-toolbar.update-ready::after { content: ""; width: 5px; height: 5px; margin-left: -2px; border-radius: 50%; background: #7f96ff; box-shadow: 0 0 9px rgba(127, 150, 255, 0.8); }
+.balance-button { color: #9fd7a7; font-variant-numeric: tabular-nums; }
+.balance-button:hover { color: #c8f0cc; }
+.balance-button.warn { color: #e3b96b; }
+.balance-button.ok { color: #7ed493; }
 .window-divider { width: 1px; height: 19px; background: var(--border); margin: 0 2px 0 5px; }
 .status-pill {
   display: flex; align-items: center; gap: 7px; height: 25px; padding: 0 10px; border: 1px solid var(--border);

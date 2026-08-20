@@ -56,6 +56,9 @@ contextBridge.exposeInMainWorld('harnessStudio', {
     status: () => ipcRenderer.invoke('modlens:status'),
     save: (patch) => ipcRenderer.invoke('modlens:save', patch),
   },
+  balance: {
+    get: () => ipcRenderer.invoke('balance:get'),
+  },
   skills: {
     list: () => ipcRenderer.invoke('skills:list'),
     chooseLocal: () => ipcRenderer.invoke('skills:choose-local'),

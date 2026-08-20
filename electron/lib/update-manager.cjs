@@ -1,9 +1,10 @@
 const { EventEmitter } = require('node:events')
 const { createHash } = require('node:crypto')
-const { spawn } = require('node:child_process')
+const { spawn, execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const https = require('node:https')
 const path = require('node:path')
+const { HttpsProxyAgent } = require('https-proxy-agent')
 
 const API_VERSION = '2022-11-28'
 const MAX_METADATA_BYTES = 2 * 1024 * 1024
@@ -11,6 +12,50 @@ const MAX_REDIRECTS = 6
 const BUILT_IN_UPDATE_MIRRORS = Object.freeze([
   Object.freeze({ id: 'gh-proxy', label: '国内社区镜像', baseUrl: 'https://gh-proxy.com' }),
 ])
+
+// 解析更新请求使用的代理：优先环境变量，其次 Windows 系统代理（HKCU Internet Settings）
+function resolveProxyUrl() {
+  const fromEnv = [
+    process.env.HTTPS_PROXY,
+    process.env.https_proxy,
+    process.env.HTTP_PROXY,
+    process.env.http_proxy,
+    process.env.ALL_PROXY,
+    process.env.all_proxy,
+  ].find((value) => typeof value === 'string' && value.trim())
+  if (fromEnv) return fromEnv.trim()
+  try {
+    const out = execFileSync(
+      'reg',
+      ['query', 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings', '/v', 'ProxyServer'],
+      { encoding: 'utf8', windowsHide: true, timeout: 3000 }
+    )
+    const match = out.match(/ProxyServer\s+REG_SZ\s+(.+)/i)
+    if (match) {
+      const server = String(match[1]).trim()
+      if (!server) return ''
+      return /^https?:\/\//i.test(server) ? server : `http://${server}`
+    }
+  } catch {
+    // 读取失败则直连
+  }
+  return ''
+}
+
+let cachedAgent = null
+function getProxyAgent() {
+  const proxy = resolveProxyUrl()
+  if (!proxy) return null
+  if (cachedAgent && cachedAgent.__proxy === proxy) return cachedAgent
+  try {
+    const agent = new HttpsProxyAgent(proxy, { keepAlive: true })
+    agent.__proxy = proxy
+    cachedAgent = agent
+    return agent
+  } catch {
+    return null
+  }
+}
 
 function parseGitHubRepository(value) {
   const source = String(value || '').trim().replace(/\.git$/i, '').replace(/\/$/, '')
@@ -96,7 +141,8 @@ function buildDownloadCandidates(assetUrl, { mode = 'auto', customMirror = '' } 
 function requestBuffer(url, { headers = {}, maxBytes = MAX_METADATA_BYTES, redirects = MAX_REDIRECTS } = {}) {
   const parsed = assertHttps(url)
   return new Promise((resolve, reject) => {
-    const request = https.get(parsed, { headers }, (response) => {
+    const agent = getProxyAgent()
+    const request = https.get(parsed, { headers, agent: agent || undefined }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         response.resume()
         if (redirects <= 0) return reject(new Error('更新服务重定向次数过多。'))
@@ -119,7 +165,7 @@ function requestBuffer(url, { headers = {}, maxBytes = MAX_METADATA_BYTES, redir
       })
       response.on('end', () => resolve(Buffer.concat(chunks)))
     })
-    request.setTimeout(15000, () => request.destroy(new Error('更新服务请求超时。')))
+    request.setTimeout(30000, () => request.destroy(new Error('更新服务请求超时。')))
     request.on('error', reject)
   })
 }
@@ -142,7 +188,8 @@ async function requestJson(url) {
 function downloadFile(url, filePath, onProgress, redirects = MAX_REDIRECTS) {
   const parsed = assertHttps(url)
   return new Promise((resolve, reject) => {
-    const request = https.get(parsed, { headers: { 'user-agent': 'DeepSeek-Harness-Studio-Updater' } }, (response) => {
+    const agent = getProxyAgent()
+    const request = https.get(parsed, { headers: { 'user-agent': 'DeepSeek-Harness-Studio-Updater' }, agent: agent || undefined }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         response.resume()
         if (redirects <= 0) return reject(new Error('安装包重定向次数过多。'))
@@ -167,7 +214,7 @@ function downloadFile(url, filePath, onProgress, redirects = MAX_REDIRECTS) {
       output.on('finish', () => resolve({ received, sha256: hash.digest('hex').toUpperCase() }))
       response.pipe(output)
     })
-    request.setTimeout(30000, () => request.destroy(new Error('安装包下载超时。')))
+    request.setTimeout(180000, () => request.destroy(new Error('安装包下载超时。')))
     request.on('error', reject)
   })
 }

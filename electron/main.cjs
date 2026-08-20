@@ -2,6 +2,7 @@ const { app, BrowserWindow, dialog, ipcMain, Menu, nativeTheme, session, shell }
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const YAML = require('yaml')
 const { RuntimeManager } = require('./lib/runtime-manager.cjs')
 const { PluginManager } = require('./lib/plugin-manager.cjs')
 const { ModlensManager } = require('./lib/modlens-manager.cjs')
@@ -218,6 +219,52 @@ function registerModlensIpc() {
   })
 }
 
+// 查询 DeepSeek 账户余额（读 ~/.dsh/.credentials.yaml 中的 DEEPSEEK_API_KEY）
+async function fetchBalance() {
+  const credentialsPath = path.join(os.homedir(), '.dsh', '.credentials.yaml')
+  let apiKey = ''
+  try {
+    if (fs.existsSync(credentialsPath)) {
+      const parsed = YAML.parse(fs.readFileSync(credentialsPath, 'utf8'))
+      apiKey = String(parsed?.DEEPSEEK_API_KEY || parsed?.deepseek_api_key || '').trim()
+    }
+  } catch {
+    apiKey = ''
+  }
+  if (!apiKey) {
+    return { ok: false, configured: false, message: '未配置 DeepSeek API Key（~/.dsh/.credentials.yaml）' }
+  }
+  try {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), 15000)
+    const response = await fetch('https://api.deepseek.com/user/balance', {
+      headers: { Authorization: `Bearer ${apiKey}`, Accept: 'application/json' },
+      signal: controller.signal,
+    })
+    clearTimeout(timer)
+    const data = await response.json()
+    if (!response.ok) {
+      return { ok: false, configured: true, message: data?.error?.message || `HTTP ${response.status}` }
+    }
+    return {
+      ok: true,
+      configured: true,
+      isAvailable: data.is_available === true,
+      balanceInfos: Array.isArray(data.balance_infos) ? data.balance_infos : [],
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      configured: true,
+      message: error?.name === 'AbortError' ? '查询超时' : error?.message || String(error),
+    }
+  }
+}
+
+function registerBalanceIpc() {
+  ipcMain.handle('balance:get', fetchBalance)
+}
+
 function registerSkillIpc() {
   ipcMain.handle('skills:list', () => skills.list())
   ipcMain.handle('skills:choose-local', async () => {
@@ -278,6 +325,7 @@ app.whenReady().then(async () => {
   registerUpdateIpc()
   registerPluginIpc()
   registerModlensIpc()
+  registerBalanceIpc()
   registerSkillIpc()
   createMainWindow()
 
