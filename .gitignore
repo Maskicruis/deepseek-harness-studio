@@ -1,0 +1,9 @@
+node_modules/
+dist/
+release/
+.build-cache/
+assets/runtime/node.exe
+*.log
+.DS_Store
+Thumbs.db
+*.tmp

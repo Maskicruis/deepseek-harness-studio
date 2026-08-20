@@ -1,0 +1,36 @@
+const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const os = require('node:os')
+const path = require('node:path')
+const test = require('node:test')
+const { SkillManager, assertDirectChild, parseSkillDocument } = require('../electron/lib/skill-manager.cjs')
+
+test('SkillManager imports, lists, and removes a valid bundle', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-skill-manager-'))
+  const source = path.join(temporary, 'source')
+  const dshHome = path.join(temporary, 'dsh-home')
+  fs.mkdirSync(path.join(source, 'references'), { recursive: true })
+  fs.writeFileSync(path.join(source, 'SKILL.md'), '---\nname: visual-review\ndescription: Review screenshots and visual layouts.\n---\n\nUse the referenced checklist.\n', 'utf8')
+  fs.writeFileSync(path.join(source, 'references', 'checklist.md'), '# Checklist\n', 'utf8')
+
+  const manager = new SkillManager({ dshHome })
+  const installed = manager.install(source)
+  assert.equal(installed.skill.name, 'visual-review')
+  assert.equal(installed.inventory.count, 1)
+  assert.equal(fs.readFileSync(path.join(dshHome, 'skills', 'visual-review', 'references', 'checklist.md'), 'utf8'), '# Checklist\n')
+  assert.equal(manager.list().skills[0].description, 'Review screenshots and visual layouts.')
+
+  const afterRemove = manager.remove('visual-review')
+  assert.equal(afterRemove.count, 0)
+  assert.equal(fs.existsSync(path.join(dshHome, 'skills', 'visual-review')), false)
+  fs.rmSync(temporary, { recursive: true, force: true })
+})
+
+test('skill metadata and target paths fail closed', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-skill-invalid-'))
+  const invalidDocument = path.join(temporary, 'SKILL.md')
+  fs.writeFileSync(invalidDocument, '---\nname: ../escape\ndescription: invalid\n---\n', 'utf8')
+  assert.throws(() => parseSkillDocument(invalidDocument), /kebab-case/)
+  assert.throws(() => assertDirectChild(path.join(temporary, 'skills'), path.join(temporary, 'outside')), /越界/)
+  fs.rmSync(temporary, { recursive: true, force: true })
+})

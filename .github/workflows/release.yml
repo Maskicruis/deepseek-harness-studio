@@ -1,0 +1,62 @@
+name: Build Windows release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Bind updater to this repository
+        shell: pwsh
+        run: npm run update:configure -- "$env:GITHUB_REPOSITORY"
+
+      - name: Test and build installers
+        run: npm run dist
+
+      - name: Create SHA-256 manifest
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem release -Filter *.exe | Sort-Object Name | ForEach-Object {
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $_.FullName).Hash
+            "$hash *$($_.Name)"
+          }
+          $lines | Set-Content release/SHA256SUMS.txt -Encoding ascii
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $assets = Get-ChildItem release | Where-Object {
+            $_.Name -match '\.(exe|blockmap)$' -or $_.Name -eq 'SHA256SUMS.txt'
+          } | ForEach-Object { $_.FullName }
+          gh release create "$env:GITHUB_REF_NAME" @assets --title "DeepSeek Harness Studio $env:GITHUB_REF_NAME" --generate-notes
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepseek-harness-studio-${{ github.ref_name }}
+          path: |
+            release/*.exe
+            release/*.blockmap
+            release/SHA256SUMS.txt
