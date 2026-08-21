@@ -565,7 +565,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.07.1'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.07.2'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -574,7 +574,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
         <div>
           {status.releaseUrl ? <button className="text-button" type="button" onClick={() => studio.runtime.openUrl(status.releaseUrl)}><Github size={14} />发布页</button> : null}
           {status.phase === 'downloaded'
-            ? <button className="primary-button compact-button" type="button" onClick={onInstall}><Download size={14} />立即更新</button>
+            ? <button className="primary-button compact-button" type="button" onClick={onInstall}><Download size={14} />安装并重启</button>
             : secureDownload
               ? <button className="primary-button compact-button" type="button" onClick={onDownload}><Download size={14} />下载更新</button>
               : <button className="secondary-button compact-button" disabled={busy || status.phase === 'unconfigured'} type="button" onClick={onCheck}>{busy ? <LoaderCircle className="spin" size={14} /> : <RefreshCw size={14} />}{status.phase === 'checking' ? '检查中…' : '检查更新'}</button>}
@@ -869,8 +869,8 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.07.1', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.07.1', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.07.2', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.07.2', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)
@@ -1082,7 +1082,7 @@ export default function App() {
   }
 
   const installUpdate = async () => {
-    if (!window.confirm('将静默更新到新版本并自动重启，不再弹出安装向导。\n你的工作区、会话、插件和设置都会保留。是否继续？')) return
+    if (!window.confirm('将关闭 DeepSeek Harness Studio 并打开新版安装程序。\n请在安装向导中点击「下一步」完成覆盖安装（可自定义安装目录）。\n你的工作区、会话、插件和设置都会保留。是否继续？')) return
     try { await studio.updates.install() }
     catch (error) { notify(error.message || String(error), 'error') }
   }

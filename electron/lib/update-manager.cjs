@@ -353,12 +353,11 @@ class UpdateManager extends EventEmitter {
   install() {
     const installer = this.status.downloadedPath
     if (!installer || !fs.existsSync(installer)) throw new Error('尚未下载可安装的更新。')
-    // 静默覆盖安装：直接以 /S（静默）+ --updated（更新模式）启动 NSIS 安装程序。
-    // NSIS 的 --updated 会自行等待应用退出后再覆盖安装，runAfterFinish 负责完成后重启应用。
-    // 注意：不要通过 PowerShell 等中间进程启动——应用退出时中间进程会被 Windows 一并终止。
-    const child = spawn(installer, ['/S', '--updated'], { detached: true, stdio: 'ignore', windowsHide: true })
+    // 手动安装：启动 NSIS 安装程序并显示安装向导，由用户按向导完成覆盖安装；
+    // 完成后由 runAfterFinish 自动重启应用。
+    const child = spawn(installer, [], { detached: true, stdio: 'ignore', windowsHide: false })
     child.unref()
-    return { launched: true, silent: true, path: installer }
+    return { launched: true, path: installer }
   }
 }
 

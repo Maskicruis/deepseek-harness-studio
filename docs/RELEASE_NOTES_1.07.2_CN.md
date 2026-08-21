@@ -1,11 +1,10 @@
-# DeepSeek Harness Studio v1.07.1
+# DeepSeek Harness Studio v1.07.2
 
-> 版本：1.07.1 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.07.1)
+> 版本：1.07.2 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.07.2)
 
-## 🐛 修复静默更新
+## 🔧 更新方式调整
 
-- 修复「立即更新」后应用直接退出、更新未生效的问题：不再通过 PowerShell 中间进程启动安装程序，改为直接以 `/S --updated` 启动 NSIS 安装程序。
-- 安装包恢复为 one-click 一键静默安装（默认安装到用户目录），静默覆盖升级更可靠。
+- 移除静默自动更新，改为「下载安装包 + 安装向导」手动覆盖安装，可自定义安装目录，更稳定可靠。
 
 ## 📄 文档读取（PDF / Word / Excel）
 
@@ -38,6 +37,6 @@ Harness 官方聊天输入框目前只接受图片（PNG、JPG、WebP、GIF）�
 
 ## 升级
 
-v1.06.0 及更早版本可在「偏好设置 → 软件更新」中直接升级：点「立即更新」即可静默覆盖安装并自动重启，无需重新走安装流程。首次安装为一键静默安装（默认安装到用户目录）。
+v1.06.0 及更早版本可在「偏好设置 → 软件更新」中检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
 > 版本号说明：小版本号中位补零（1.6 → 1.06、1.07、1.08、1.10 依此类推）。
