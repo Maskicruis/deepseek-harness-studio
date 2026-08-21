@@ -48,8 +48,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.6.0-x64.exe`：推荐的 one-click 安装版，双击即可静默安装，后续更新自动覆盖并重启。
-- `DeepSeek-Harness-Studio-Portable-1.6.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe`：推荐的 one-click 安装版，双击即可静默安装，后续更新自动覆盖并重启。
+- `DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -59,7 +59,7 @@ v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES
 
 v1.4.1 的国内更新镜像、自动回退与校验策略见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
 
-v1.6.0 的视觉模块简化（默认阿里千问）与静默覆盖升级见 [docs/RELEASE_NOTES_1.6.0_CN.md](docs/RELEASE_NOTES_1.6.0_CN.md)。
+v1.06.0 的视觉模块简化（默认阿里千问）与静默覆盖升级见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
 
 v1.5.0 的阿里千问视觉引擎、Token 余额显示与更新器代理优化见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
 

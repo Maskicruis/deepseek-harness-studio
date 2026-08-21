@@ -1,6 +1,6 @@
-# DeepSeek Harness Studio v1.6.0
+# DeepSeek Harness Studio v1.06
 
-> 版本：1.6.0 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.6.0)
+> 版本：1.06.0 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.06.0)
 
 ## 🖼️ 视觉模块简化：默认阿里千问
 
@@ -30,3 +30,5 @@
 ## 升级
 
 v1.5.0 及更早版本（含旧版安装向导安装的版本）都可在「偏好设置 → 软件更新」中直接升级：先下载更新包，再点「立即更新」，即可静默覆盖安装并自动重启，无需卸载、无需重新走安装流程。
+
+> 版本号说明：从本版本起，小版本号中位补零（1.6 → 1.06），与后续 1.07、1.08、1.10 等版本对齐。

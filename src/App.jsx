@@ -554,7 +554,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.6.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.06.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -858,8 +858,8 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.6.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.6.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.06.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.06.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)
