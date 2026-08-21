@@ -9,6 +9,23 @@
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
+## 安装使用
+
+**直接下载最新版（Windows 10/11）：**
+
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)（约 147 MB，一键静默安装）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe)（免安装，解压即用）
+
+历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
+
+**安装后配置视觉识图（3 步）：**
+
+1. 打开 Studio「偏好设置 → 视觉能力」，视觉引擎默认就是「阿里千问 Qwen-VL」；
+2. 粘贴阿里云百炼 DashScope API Key（`sk-` 开头）→ 点「保存并重启」；
+3. 在 Harness 模型选择器选名称带 `(modlens vision)` 的模型，粘贴图片即可识图。
+
+**升级方式：** 在「偏好设置 → 软件更新」检查更新，点「立即更新」即可静默覆盖安装并自动重启，无需重新走安装流程。
+
 ## 已实现
 
 - 原生无边框桌面窗口、启动动画、运行状态与故障恢复。
@@ -26,23 +43,6 @@
 - 安装版与免安装版 Windows 可执行文件。
 - 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256；更新采用静默覆盖安装并自动重启，无需重新走安装向导。
 - DeepSeek 官方 Harness 随附的鲸鱼图标，用于窗口和可执行文件。
-
-## 安装使用
-
-**直接下载最新版（Windows 10/11）：**
-
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)（约 147 MB，一键静默安装）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe)（免安装，解压即用）
-
-历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
-
-**安装后配置视觉识图（3 步）：**
-
-1. 打开 Studio「偏好设置 → 视觉能力」，视觉引擎默认就是「阿里千问 Qwen-VL」；
-2. 粘贴阿里云百炼 DashScope API Key（`sk-` 开头）→ 点「保存并重启」；
-3. 在 Harness 模型选择器选名称带 `(modlens vision)` 的模型，粘贴图片即可识图。
-
-**升级方式：** 在「偏好设置 → 软件更新」检查更新，点「立即更新」即可静默覆盖安装并自动重启，无需重新走安装流程。
 
 ## 开发运行
 
@@ -73,17 +73,19 @@ npm run dist
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
-向其他电脑部署时，可直接分发安装程序；完整步骤和数据迁移说明见 [docs/INSTALL_CN.md](docs/INSTALL_CN.md)。精选组件及 ModLens 使用说明见 [docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)。版本更新与 GitHub 发布方法见 [docs/UPDATES_CN.md](docs/UPDATES_CN.md)。
+## 文档
 
-v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
+- 安装、部署与数据迁移：[docs/INSTALL_CN.md](docs/INSTALL_CN.md)
+- 精选生态组件与 ModLens 使用：[docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)
+- 版本更新与 GitHub 发布：[docs/UPDATES_CN.md](docs/UPDATES_CN.md)
 
-v1.4.1 的国内更新镜像、自动回退与校验策略见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
+## 版本说明
 
-v1.5.0 的阿里千问视觉引擎、Token 余额显示与更新器代理优化见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。
-
-v1.06.0 的视觉模块简化（默认阿里千问）与静默覆盖升级见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
-
-各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
+- v1.06.0 —— 视觉模块简化（默认阿里千问）与静默覆盖升级，见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
+- v1.5.0 —— 阿里千问视觉引擎、Token 余额显示与更新器代理优化，见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。
+- v1.4.1 —— 国内更新镜像、自动回退与校验策略，见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
+- v1.4.0 —— 视觉 API 配置、安全策略与故障说明，见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
+- 各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 插件导入
 
