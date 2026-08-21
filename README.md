@@ -4,6 +4,9 @@
 
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
+[![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.06-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)
+
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
 ## 已实现
@@ -24,6 +27,23 @@
 - 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256；更新采用静默覆盖安装并自动重启，无需重新走安装向导。
 - DeepSeek 官方 Harness 随附的鲸鱼图标，用于窗口和可执行文件。
 
+## 安装使用
+
+**直接下载最新版（Windows 10/11）：**
+
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)（约 147 MB，一键静默安装）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe)（免安装，解压即用）
+
+历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
+
+**安装后配置视觉识图（3 步）：**
+
+1. 打开 Studio「偏好设置 → 视觉能力」，视觉引擎默认就是「阿里千问 Qwen-VL」；
+2. 粘贴阿里云百炼 DashScope API Key（`sk-` 开头）→ 点「保存并重启」；
+3. 在 Harness 模型选择器选名称带 `(modlens vision)` 的模型，粘贴图片即可识图。
+
+**升级方式：** 在「偏好设置 → 软件更新」检查更新，点「立即更新」即可静默覆盖安装并自动重启，无需重新走安装流程。
+
 ## 开发运行
 
 环境要求：Windows 10/11、Node.js 24、npm。首次安装依赖：
@@ -39,7 +59,7 @@ npm run dev
 npm run dev:web
 ```
 
-## 构建
+## 从源码构建
 
 ```powershell
 npm test
