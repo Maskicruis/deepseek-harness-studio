@@ -7,6 +7,7 @@ Studio v1.2.0 在“插件中心”新增“生态组件”和“Skills”两个
 | 组件 | 固定版本 | 用途 | 使用提示 |
 | --- | --- | --- | --- |
 | `@liustack/modlens` | `3.22.0` | 为纯文本模型增加图片读取、OCR、布局与语义分析 | 安装后选择名称中带 `modlens vision` 的模型入口；首次使用需配置可用视觉引擎 |
+| `@huiliyi37/dsh-office` | `0.2.1` | 读取并生成 PDF、Word（docx）、Excel（xlsx）、PPT（pptx）等办公文档 | 安装后模型可通过 `pdf_read` / `docx_read` / `xlsx_read` 等工具读取文档内容 |
 | `@liustack/modsearch` | `5.6.0` | 网页搜索、页面抓取与 X 搜索 | 安装启用后由智能体按任务调用 |
 | `@liustack/pptfast` | `0.20.0` | 生成可编辑 PPTX 演示文稿 | 适合汇报、方案和教学演示 |
 | `@wntediluvian/dsh-backup` | `0.2.3` | 会话、记忆、插件、Skills 与配置的备份恢复 | 安装后在 Harness 设置中检查备份策略 |

@@ -87,6 +87,17 @@ const ECOSYSTEM_COMPONENTS = [
     url: 'https://github.com/liustack/modlens',
   },
   {
+    name: '@huiliyi37/dsh-office',
+    source: '@huiliyi37/dsh-office@0.2.1',
+    version: '0.2.1',
+    title: 'Office 文档读写',
+    category: '文档',
+    icon: FileText,
+    description: '让模型读取并生成 PDF、Word（docx）、Excel（xlsx）、PPT（pptx）等办公文档。',
+    hint: '安装后模型可通过 pdf_read / docx_read / xlsx_read 等工具直接读取文档内容。',
+    url: 'https://github.com/omdsh-dev/dsh-office',
+  },
+  {
     name: '@liustack/modsearch',
     source: '@liustack/modsearch@5.6.0',
     version: '5.6.0',
