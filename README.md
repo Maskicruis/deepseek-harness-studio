@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.0/DeepSeek-Harness-Studio-Setup-1.07.0-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.1/DeepSeek-Harness-Studio-Setup-1.07.1-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.0/DeepSeek-Harness-Studio-Setup-1.07.0-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.0/DeepSeek-Harness-Studio-Portable-1.07.0-x64.exe)（免安装，解压即用）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.1-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.1/DeepSeek-Harness-Studio-Setup-1.07.1-x64.exe)（约 147 MB，一键静默安装到用户目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.1-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.1/DeepSeek-Harness-Studio-Portable-1.07.1-x64.exe)（免安装，解压即用）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -72,8 +72,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.0-x64.exe`：推荐的安装版，双击运行安装向导、可选择安装目录，后续更新静默覆盖并自动重启。
-- `DeepSeek-Harness-Studio-Portable-1.07.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.07.1-x64.exe`：推荐的一键安装版，双击即静默安装到用户目录，后续更新静默覆盖并自动重启。
+- `DeepSeek-Harness-Studio-Portable-1.07.1-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -85,7 +85,7 @@ npm run dist
 
 ## 版本说明
 
-- v1.07.0 —— 新增文档读取组件（读 PDF/Word/Excel）与使用说明，见 [docs/RELEASE_NOTES_1.07.0_CN.md](docs/RELEASE_NOTES_1.07.0_CN.md)。
+- v1.07.1 —— 文档读取组件与使用说明，并修复静默更新失败问题，见 [docs/RELEASE_NOTES_1.07.1_CN.md](docs/RELEASE_NOTES_1.07.1_CN.md)。
 - v1.06.0 —— 视觉模块简化（默认阿里千问）与静默覆盖升级，见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
 - v1.05.0 —— 阿里千问视觉引擎、Token 余额显示与更新器代理优化，见 [docs/RELEASE_NOTES_1.05.0_CN.md](docs/RELEASE_NOTES_1.05.0_CN.md)。
 - v1.04.1 —— 国内更新镜像、自动回退与校验策略，见 [docs/RELEASE_NOTES_1.04.1_CN.md](docs/RELEASE_NOTES_1.04.1_CN.md)。

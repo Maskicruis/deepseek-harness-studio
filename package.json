@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-studio",
-  "version": "1.07.0",
+  "version": "1.07.1",
   "description": "A polished Windows desktop shell for DeepSeek Harness with community plugin management.",
   "main": "electron/main.cjs",
   "author": "DeepSeek Harness Studio",
@@ -111,11 +111,8 @@
     },
     "nsis": {
       "artifactName": "DeepSeek-Harness-Studio-Setup-${version}-${arch}.${ext}",
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
-      "allowElevation": true,
-      "packElevateHelper": true,
       "runAfterFinish": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
