@@ -18,6 +18,7 @@ import {
   Github,
   Globe2,
   HardDrive,
+  Info,
   LoaderCircle,
   Maximize2,
   Minimize2,
@@ -737,6 +738,7 @@ function VisionSettingsCard({ status, busy, onRefresh, onSave }) {
             <p>在 Harness 模型选择器中选名称带 <code>(modlens vision)</code> 的文本模型，然后直接粘贴图片并提问；也支持在消息中提供图片绝对路径。</p>
           </div>
           <p className="vision-security"><ShieldCheck size={13} />密钥只写入本机 <code>~/.modlens/config.json</code>，不会进入工作区、Git 仓库或界面回显。</p>
+          <p className="vision-hint"><Info size={13} />如果在 Harness 里看到 ModLens 自带的「插件配置」页（auto 模式、勾选 claude/codex 那页），那是插件原生界面，无需在那里操作——API Key 就在本页填写并保存。</p>
         </>
       ) : (
         <div className="vision-empty">

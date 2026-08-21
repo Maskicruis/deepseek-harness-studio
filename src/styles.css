@@ -280,6 +280,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .vision-usage code, .vision-security code { color: #aab7ed; font-family: "Cascadia Code", Consolas, monospace; user-select: text; }
 .vision-security { display: flex; align-items: flex-start; gap: 5px; margin: 9px 1px 0; color: #587166; font-size: 7.3px; line-height: 1.45; }
 .vision-security svg { flex: 0 0 auto; color: #69a98b; }
+.vision-hint { display: flex; align-items: flex-start; gap: 5px; margin: 7px 1px 0; color: #6d7c9e; font-size: 7.3px; line-height: 1.5; }
+.vision-hint svg { flex: 0 0 auto; color: #7d8ecf; }
 .vision-empty { align-items: center; }
 .vision-empty > div { flex: 1; min-width: 0; }
 .vision-empty button { flex: 0 0 auto; }
