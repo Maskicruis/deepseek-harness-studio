@@ -21,6 +21,7 @@ const path = require('node:path')
 
 const repo = 'Maskicruis/deepseek-harness-studio'
 const API = 'https://api.github.com'
+const UPLOADS_API = 'https://uploads.github.com'
 const VERSION = process.argv[2] || require('../package.json').version
 const TAG = `v${VERSION}`
 const DISPLAY_VERSION = String(VERSION).replace(/\.0$/, '') // 1.06.0 → 1.06
@@ -132,7 +133,7 @@ async function main() {
       console.log(`已移除旧资产: ${candidate.name}`)
     }
     const binary = fs.readFileSync(filePath)
-    const uploaded = await api('POST', `${API}/repos/${repo}/releases/${release.id}/assets?name=${encodeURIComponent(candidate.name)}`, { token, binary })
+    const uploaded = await api('POST', `${UPLOADS_API}/repos/${repo}/releases/${release.id}/assets?name=${encodeURIComponent(candidate.name)}`, { token, binary })
     console.log(`已上传 ${candidate.name} (${(binary.length / 1048576).toFixed(1)} MB)`)
   }
   console.log(`✅ 发布完成: https://github.com/${repo}/releases/tag/${TAG}`)
