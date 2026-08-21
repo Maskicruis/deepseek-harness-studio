@@ -2,6 +2,19 @@
 
 本文件记录 DeepSeek Harness Studio 的重要变更。各版本的详细发布说明见 `docs/RELEASE_NOTES_*.md`。
 
+## [1.07.0] - 2026-08-xx
+
+### 📄 文档读取（PDF / Word / Excel）
+- 生态组件新增「文档读取」组件（`dsh-plugin-doc-reader`），为模型增加 `read_document` 工具。
+- 支持按文件路径读取 PDF、Word（docx）、Excel（xlsx）与纯文本，任意模型模式均可调用。
+- 补充使用说明：聊天输入框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + read_document」。
+
+### 🧭 使用说明
+- 明确「含图片的会话切换到纯文本模型会被拒绝」是 Harness 的安全机制，并给出规避方式（有图用 `(modlens vision)` 模型 / 新建会话）。
+
+### 📦 其他
+- 版本升级至 1.07.0。
+
 ## [1.06.0] - 2026-08-xx
 
 ### 🖼️ 视觉模块简化（默认阿里千问）

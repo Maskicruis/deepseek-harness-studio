@@ -87,15 +87,15 @@ const ECOSYSTEM_COMPONENTS = [
     url: 'https://github.com/liustack/modlens',
   },
   {
-    name: '@huiliyi37/dsh-office',
-    source: '@huiliyi37/dsh-office@0.2.1',
-    version: '0.2.1',
-    title: 'Office 文档读写',
+    name: 'dsh-plugin-doc-reader',
+    source: 'dsh-plugin-doc-reader@0.1.2',
+    version: '0.1.2',
+    title: '文档读取',
     category: '文档',
     icon: FileText,
-    description: '让模型读取并生成 PDF、Word（docx）、Excel（xlsx）、PPT（pptx）等办公文档。',
-    hint: '安装后模型可通过 pdf_read / docx_read / xlsx_read 等工具直接读取文档内容。',
-    url: 'https://github.com/omdsh-dev/dsh-office',
+    description: '让模型读取 PDF、Word（docx）、Excel（xlsx）及纯文本文件（通过文件路径）。',
+    hint: '安装后模型可用 read_document 工具，按文件路径读取文档内容（聊天框只收图片，文档请用路径）。',
+    url: 'https://www.npmjs.com/package/dsh-plugin-doc-reader',
   },
   {
     name: '@liustack/modsearch',
@@ -565,7 +565,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.06.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.07.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -869,8 +869,8 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.06.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.06.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.07.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.07.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)

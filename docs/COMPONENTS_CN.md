@@ -7,7 +7,7 @@ Studio v1.2.0 在“插件中心”新增“生态组件”和“Skills”两个
 | 组件 | 固定版本 | 用途 | 使用提示 |
 | --- | --- | --- | --- |
 | `@liustack/modlens` | `3.22.0` | 为纯文本模型增加图片读取、OCR、布局与语义分析 | 安装后选择名称中带 `modlens vision` 的模型入口；首次使用需配置可用视觉引擎 |
-| `@huiliyi37/dsh-office` | `0.2.1` | 读取并生成 PDF、Word（docx）、Excel（xlsx）、PPT（pptx）等办公文档 | 安装后模型可通过 `pdf_read` / `docx_read` / `xlsx_read` 等工具读取文档内容 |
+| `dsh-plugin-doc-reader` | `0.1.2` | 读取 PDF、Word（docx）、Excel（xlsx）及纯文本文件 | 安装后模型可用 `read_document` 工具，按文件路径读取文档（聊天框只收图片，文档请用路径） |
 | `@liustack/modsearch` | `5.6.0` | 网页搜索、页面抓取与 X 搜索 | 安装启用后由智能体按任务调用 |
 | `@liustack/pptfast` | `0.20.0` | 生成可编辑 PPTX 演示文稿 | 适合汇报、方案和教学演示 |
 | `@wntediluvian/dsh-backup` | `0.2.3` | 会话、记忆、插件、Skills 与配置的备份恢复 | 安装后在 Harness 设置中检查备份策略 |
@@ -44,6 +44,33 @@ OpenAI 兼容端点中的模型必须真正支持图片输入；纯文本 DeepSe
 截图中出现的 `vision engine failed` 表示附件已经到达 ModLens，但所选视觉 Provider 调用失败；这时无需全盘搜索图片文件，应先进入视觉设置检查当前首选引擎、缺失字段和登录状态，修复后重新粘贴图片。
 
 ModLens 文档：https://github.com/liustack/modlens
+
+## 文档阅读（PDF / Word / Excel）
+
+Harness 的聊天输入框目前只接受图片（PNG、JPG、WebP、GIF），**不能直接拖入 PDF、Word、Excel**。要读文档，请用「文件路径 + read_document 工具」：
+
+1. 在「插件 → 生态组件」接入「文档读取」组件（`dsh-plugin-doc-reader`）；
+2. 安装完成后，直接让模型按**文件路径**读取文档，例如：
+
+   ```text
+   读取 C:\Users\你的用户名\Documents\报告.docx 的内容并总结
+   读取 D:\数据\统计.xlsx，统计共有多少行
+   ```
+
+3. 模型会调用 `read_document` 工具读取该文件并返回内容。
+
+该工具挂在 Harness 上、与所选模型无关，因此无论用 `flash`、`pro` 还是带 `(modlens vision)` 的模型，都能读文档。
+
+### 关于模型切换的报错
+
+在已经包含图片的会话里，切换到纯文本模型（如 `DeepSeek-V4-Flash` / `Pro`）会报错：
+
+> model-unavailable: Model "..." does not accept image input, but this session already contains images: select an image-capable model.
+
+这是 Harness 的安全机制，不是故障：
+
+- 会话里有图片 → 使用名称带 `(modlens vision)` 的模型；
+- 想用纯文本模型 → 新建一个不含图片的会话。
 
 ## 本地 Skills
 
