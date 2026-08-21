@@ -167,6 +167,20 @@ function releaseNotes() {
 
 ### 📦 版本号规整
 - 版本号中位补零：1.6 → 1.06，App 内显示 v${VERSION}，后续 1.07、1.08、1.10 依此类推
+
+---
+
+## 🛠️ 从源码构建
+
+\`\`\`powershell
+npm install
+npm test
+npm run dist
+\`\`\`
+
+输出位于 \`release/\`：安装版（NSIS）与便携版（portable）可执行文件。构建脚本会先运行 \`npm run runtime:prepare\` 复制当前 Node.js 24 运行时到打包资源，成品不依赖用户系统 PATH。
+
+完整的构建、更新与发布说明见仓库 [README](https://github.com/${repo}#readme) 与 [docs/UPDATES_CN.md](https://github.com/${repo}/blob/main/docs/UPDATES_CN.md)。
 `
 }
 

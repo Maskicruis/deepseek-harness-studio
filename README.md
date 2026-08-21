@@ -59,9 +59,11 @@ v1.4.0 的视觉 API 配置、安全策略与故障说明见 [docs/RELEASE_NOTES
 
 v1.4.1 的国内更新镜像、自动回退与校验策略见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
 
+v1.5.0 的阿里千问视觉引擎、Token 余额显示与更新器代理优化见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。
+
 v1.06.0 的视觉模块简化（默认阿里千问）与静默覆盖升级见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
 
-v1.5.0 的阿里千问视觉引擎、Token 余额显示与更新器代理优化见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
+各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 插件导入
 
