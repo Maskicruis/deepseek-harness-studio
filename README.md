@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.2/DeepSeek-Harness-Studio-Setup-1.07.2-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.3-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.2-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.2/DeepSeek-Harness-Studio-Setup-1.07.2-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.2-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.2/DeepSeek-Harness-Studio-Portable-1.07.2-x64.exe)（免安装，解压即用）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe)（免安装，解压即用）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -26,7 +26,7 @@
 
 **读 PDF / Word / Excel：** 聊天输入框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + `read_document` 工具」，例如直接发「读取 `D:\资料\报告.docx` 的内容」。详见 [docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)。
 
-**模型切换说明：** 在已含图片的会话里切换到纯文本模型会被拒绝（安全机制，不是故障）——有图就用带 `(modlens vision)` 的模型，想用纯文本模型请新建会话。
+**模型切换说明：** v1.07.3 起，使用 ModLens 识图后可以在同一会话直接切回普通 DeepSeek 文本模型。历史图片会被转换为“图片已省略”的文字占位，原始提问文字和 ModLens 识别结论继续保留；输入框中尚未发送的新图片仍需使用带 `(modlens vision)` 的模型。
 
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
@@ -72,8 +72,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.2-x64.exe`：推荐的一键安装版，双击即静默安装到用户目录，后续更新静默覆盖并自动重启。
-- `DeepSeek-Harness-Studio-Portable-1.07.2-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -85,6 +85,7 @@ npm run dist
 
 ## 版本说明
 
+- v1.07.3 —— 修复 ModLens 会话无法切回普通文本模型的问题，见 [docs/RELEASE_NOTES_1.07.3_CN.md](docs/RELEASE_NOTES_1.07.3_CN.md)。
 - v1.07.2 —— 文档读取组件与使用说明，并修复静默更新失败问题，见 [docs/RELEASE_NOTES_1.07.2_CN.md](docs/RELEASE_NOTES_1.07.2_CN.md)。
 - v1.06.0 —— 视觉模块简化（默认阿里千问）与静默覆盖升级，见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
 - v1.05.0 —— 阿里千问视觉引擎、Token 余额显示与更新器代理优化，见 [docs/RELEASE_NOTES_1.05.0_CN.md](docs/RELEASE_NOTES_1.05.0_CN.md)。

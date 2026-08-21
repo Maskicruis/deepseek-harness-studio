@@ -52,18 +52,20 @@ function sha256(filePath) {
 // 把 release/ 下 electron-builder 规范化命名的产物改名为规整版本名，并重新生成 SHA256SUMS.txt
 function renameArtifacts() {
   const raw = rawVersion(VERSION)
-  if (raw === VERSION) return []
   const moved = []
-  for (const file of fs.readdirSync(RELEASE_DIR)) {
-    const paddedName = file.split(raw).join(VERSION)
-    if (paddedName !== file && !file.startsWith('win-unpacked')) {
-      fs.renameSync(path.join(RELEASE_DIR, file), path.join(RELEASE_DIR, paddedName))
-      moved.push(`${file} -> ${paddedName}`)
+  if (raw !== VERSION) {
+    for (const file of fs.readdirSync(RELEASE_DIR)) {
+      const paddedName = file.split(raw).join(VERSION)
+      if (paddedName !== file && !file.startsWith('win-unpacked')) {
+        fs.renameSync(path.join(RELEASE_DIR, file), path.join(RELEASE_DIR, paddedName))
+        moved.push(`${file} -> ${paddedName}`)
+      }
     }
   }
-  const lines = fs.readdirSync(RELEASE_DIR)
-    .filter((name) => name.endsWith('.exe'))
-    .sort()
+  const lines = [
+    `DeepSeek-Harness-Studio-Portable-${VERSION}-x64.exe`,
+    `DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe`,
+  ].filter((name) => fs.existsSync(path.join(RELEASE_DIR, name)))
     .map((name) => `${sha256(path.join(RELEASE_DIR, name))} *${name}`)
   fs.writeFileSync(path.join(RELEASE_DIR, 'SHA256SUMS.txt'), `${lines.join('\n')}\n`, 'ascii')
   return moved
@@ -89,18 +91,23 @@ async function main() {
   const moved = renameArtifacts()
   for (const entry of moved) console.log(`已规整产物名: ${entry}`)
 
-  // 1. 检查同名 release，存在则复用
+  const metadata = {
+    name: `DeepSeek Harness Studio v${DISPLAY_VERSION}`,
+    body: releaseNotes(),
+    draft: false,
+    prerelease: false,
+  }
+
+  // 1. 检查同名 release；重复执行时同步刷新标题和正文
   let release
   try {
     release = await api('GET', `${API}/repos/${repo}/releases/tags/${TAG}`, { token })
-    console.log(`已存在 release ${TAG}，将补传缺失资产`)
+    release = await api('PATCH', `${API}/repos/${repo}/releases/${release.id}`, { token, body: metadata })
+    console.log(`已更新 release ${TAG} 的标题和正文`)
   } catch {
     const body = {
       tag_name: TAG,
-      name: `DeepSeek Harness Studio v${DISPLAY_VERSION}`,
-      body: releaseNotes(),
-      draft: false,
-      prerelease: false,
+      ...metadata,
     }
     release = await api('POST', `${API}/repos/${repo}/releases`, { token, body })
     console.log(`已创建 release ${TAG}`)
@@ -121,8 +128,8 @@ async function main() {
       continue
     }
     if (existing.has(candidate.name)) {
-      console.log(`资产已存在，跳过: ${candidate.name}`)
-      continue
+      await api('DELETE', `${API}/repos/${repo}/releases/assets/${existing.get(candidate.name)}`, { token })
+      console.log(`已移除旧资产: ${candidate.name}`)
     }
     const binary = fs.readFileSync(filePath)
     const uploaded = await api('POST', `${API}/repos/${repo}/releases/${release.id}/assets?name=${encodeURIComponent(candidate.name)}`, { token, binary })
@@ -159,15 +166,18 @@ function releaseNotes() {
 
 ## 📋 v${DISPLAY_VERSION} 更新内容
 
-### 📄 文档读取（PDF / Word / Excel）
-- 生态组件新增「文档读取」组件（\`dsh-plugin-doc-reader\`），模型可用 \`read_document\` 工具按文件路径读取 PDF、Word（docx）、Excel（xlsx）与纯文本
-- 任意模型模式均可调用；聊天框只收图片，读文档请用「文件路径 + read_document」
+### 🐛 修复 ModLens 后无法切回普通模型
+- 使用 ModLens 识图后，现在可以在同一会话直接切回 \`DeepSeek-V4-Flash\` 或 \`DeepSeek-V4-Pro\`
+- 原始提问文字和 ModLens 识别结论继续保留；纯文本 API 不会再收到它无法处理的历史图片数据
+- 历史图片会转换为明确的文字占位，而输入框中尚未发送的新图片仍需使用带 \`(modlens vision)\` 的模型
 
-### 🧭 使用说明
-- 含图片的会话切换到纯文本模型会被拒绝（Harness 安全机制）；有图用 \`(modlens vision)\` 模型，纯文本请新建会话
+### 🧰 构建可靠性
+- 模型切换兼容补丁会在依赖安装和发布构建前自动检查并应用
+- 新增回归测试，防止后续安装包再次出现图片会话锁死文本模型的问题
 
-### 🔧 更新方式调整
-- 移除静默自动更新，改为「下载安装包 + 安装向导」手动覆盖安装（可自定义安装目录），更稳定可靠
+### 📄 延续功能
+- 支持通过 \`read_document\` 按文件路径读取 PDF、Word（docx）、Excel（xlsx）与纯文本
+- 软件更新继续采用「下载安装包 + 安装向导」覆盖安装，可自定义安装目录，无需先卸载
 
 ---
 

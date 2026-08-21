@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-studio",
-  "version": "1.07.2",
+  "version": "1.07.3",
   "description": "A polished Windows desktop shell for DeepSeek Harness with community plugin management.",
   "main": "electron/main.cjs",
   "author": "DeepSeek Harness Studio",
@@ -21,6 +21,7 @@
     "build:web": "vite build",
     "promo:build": "node scripts/build-promo-assets.cjs",
     "patch:dsh-model-switch": "node scripts/patch-dsh-model-switch.cjs",
+    "release:publish": "node scripts/publish-release.cjs",
     "update:configure": "node scripts/configure-update-repository.cjs",
     "runtime:prepare": "npm run patch:dsh-model-switch && node scripts/prepare-runtime.cjs",
     "test": "node --test tests/*.test.cjs",
