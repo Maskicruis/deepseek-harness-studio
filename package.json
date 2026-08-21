@@ -15,12 +15,14 @@
     "url": "https://github.com/Maskicruis/deepseek-harness-studio/issues"
   },
   "scripts": {
+    "postinstall": "node scripts/patch-dsh-model-switch.cjs",
     "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "dev:web": "vite --host 127.0.0.1",
     "build:web": "vite build",
     "promo:build": "node scripts/build-promo-assets.cjs",
+    "patch:dsh-model-switch": "node scripts/patch-dsh-model-switch.cjs",
     "update:configure": "node scripts/configure-update-repository.cjs",
-    "runtime:prepare": "node scripts/prepare-runtime.cjs",
+    "runtime:prepare": "npm run patch:dsh-model-switch && node scripts/prepare-runtime.cjs",
     "test": "node --test tests/*.test.cjs",
     "pack": "npm run build:web && npm run runtime:prepare && electron-builder --dir --win",
     "dist:setup": "npm run test && npm run build:web && npm run runtime:prepare && electron-builder --win nsis --publish never",
