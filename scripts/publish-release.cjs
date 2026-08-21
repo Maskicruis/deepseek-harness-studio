@@ -137,7 +137,7 @@ function releaseNotes() {
 
 **Windows 10/11 用户直接下载安装版（推荐）：**
 
-⬇️ [DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe](${asset(`DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe`)})（约 147 MB，一键静默安装）
+⬇️ [DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe](${asset(`DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe`)})（约 147 MB，安装向导，可选择安装目录）
 
 不想安装？也可以直接用免安装便携版：
 
@@ -162,7 +162,7 @@ function releaseNotes() {
 - 未配置时默认引导到阿里千问，只需粘贴阿里云百炼 DashScope API Key 即可识图
 
 ### ⚡ 静默覆盖升级
-- 安装包改为 one-click 静默模式，点击「立即更新」后自动覆盖安装到原目录并重启应用，不再弹出安装向导
+- 更新改为静默覆盖，点击「立即更新」后自动覆盖安装到原目录并重启应用，不再弹出安装向导（首次安装仍是向导式、可选择安装目录）
 - 更新前应用自动退出、完成后自动重启，工作区、会话、插件与设置均保留
 
 ### 📦 版本号规整

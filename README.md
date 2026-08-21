@@ -13,7 +13,7 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)（约 147 MB，一键静默安装）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe)（约 147 MB，安装向导，可选择安装目录）
 - ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.06.0/DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe)（免安装，解压即用）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
@@ -68,7 +68,7 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe`：推荐的 one-click 安装版，双击即可静默安装，后续更新自动覆盖并重启。
+- `DeepSeek-Harness-Studio-Setup-1.06.0-x64.exe`：推荐的安装版，双击运行安装向导、可选择安装目录，后续更新静默覆盖并自动重启。
 - `DeepSeek-Harness-Studio-Portable-1.06.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
