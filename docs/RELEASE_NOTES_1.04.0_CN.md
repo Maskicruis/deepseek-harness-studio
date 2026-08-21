@@ -1,4 +1,4 @@
-# DeepSeek Harness Studio v1.4.0
+# DeepSeek Harness Studio v1.04.0
 
 本版本补齐 ModLens 从“安装成功”到“能够识图”的配置闭环。
 

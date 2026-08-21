@@ -82,9 +82,9 @@ npm run dist
 ## 版本说明
 
 - v1.06.0 —— 视觉模块简化（默认阿里千问）与静默覆盖升级，见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
-- v1.5.0 —— 阿里千问视觉引擎、Token 余额显示与更新器代理优化，见 [docs/RELEASE_NOTES_1.5.0_CN.md](docs/RELEASE_NOTES_1.5.0_CN.md)。
-- v1.4.1 —— 国内更新镜像、自动回退与校验策略，见 [docs/RELEASE_NOTES_1.4.1_CN.md](docs/RELEASE_NOTES_1.4.1_CN.md)。
-- v1.4.0 —— 视觉 API 配置、安全策略与故障说明，见 [docs/RELEASE_NOTES_1.4.0_CN.md](docs/RELEASE_NOTES_1.4.0_CN.md)。
+- v1.05.0 —— 阿里千问视觉引擎、Token 余额显示与更新器代理优化，见 [docs/RELEASE_NOTES_1.05.0_CN.md](docs/RELEASE_NOTES_1.05.0_CN.md)。
+- v1.04.1 —— 国内更新镜像、自动回退与校验策略，见 [docs/RELEASE_NOTES_1.04.1_CN.md](docs/RELEASE_NOTES_1.04.1_CN.md)。
+- v1.04.0 —— 视觉 API 配置、安全策略与故障说明，见 [docs/RELEASE_NOTES_1.04.0_CN.md](docs/RELEASE_NOTES_1.04.0_CN.md)。
 - 各版本变更汇总见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 插件导入

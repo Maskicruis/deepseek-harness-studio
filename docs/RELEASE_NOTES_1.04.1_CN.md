@@ -1,4 +1,4 @@
-# DeepSeek Harness Studio v1.4.1
+# DeepSeek Harness Studio v1.04.1
 
 ## 国内更新线路
 
@@ -14,4 +14,4 @@
 
 ## 升级
 
-v1.4.0 用户可在“偏好设置 → 软件更新”中直接检查并覆盖升级，无需卸载，也不会删除工作区、会话、插件、Skills 或 ModLens 配置。
+v1.04.0 用户可在“偏好设置 → 软件更新”中直接检查并覆盖升级，无需卸载，也不会删除工作区、会话、插件、Skills 或 ModLens 配置。

@@ -1,6 +1,6 @@
-# DeepSeek Harness Studio v1.5.0
+# DeepSeek Harness Studio v1.05.0
 
-> 版本：1.5.0 ｜ 发布时间：2026-08-21 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.5.0)
+> 版本：1.05.0 ｜ 发布时间：2026-08-21 ｜ [GitHub Release](https://github.com/Maskicruis/deepseek-harness-studio/releases/tag/v1.5.0)
 
 ## 🖼️ 视觉模块重做：接入阿里千问
 
@@ -26,15 +26,15 @@
 
 - 更新下载**自动走系统代理**：优先读取 `HTTPS_PROXY` / `HTTP_PROXY` 等环境变量，其次读取 Windows 系统代理（HKCU Internet Settings），无代理时自动直连。
 - 放宽超时：元数据请求 15s → 30s，安装包下载 30s → 180s，减少大文件断流。
-- 保留 v1.4.1 的国内社区镜像优先、GitHub 自动回退与 SHA-256 强制校验策略。
+- 保留 v1.04.1 的国内社区镜像优先、GitHub 自动回退与 SHA-256 强制校验策略。
 
 **效果**：配合系统代理（如 Clash）时，146 MB 安装包下载从约 130 KB/s（且频繁断流）提升到 10+ MB/s。
 
 ## 📦 构建与发布
 
 - 新增 `scripts/publish-release.cjs`：一键发布 Release 到 GitHub（通过 Git Credential Manager 读取凭据，不硬编码 Token），自动上传安装包、blockmap 与 SHA256SUMS.txt。
-- 构建产物：`DeepSeek-Harness-Studio-Setup-1.5.0-x64.exe`（安装版）、`DeepSeek-Harness-Studio-Portable-1.5.0-x64.exe`（便携版）。
+- 构建产物：`DeepSeek-Harness-Studio-Setup-1.05.0-x64.exe`（安装版）、`DeepSeek-Harness-Studio-Portable-1.05.0-x64.exe`（便携版）。
 
 ## 升级
 
-v1.4.x 用户可在「偏好设置 → 软件更新」中直接检查并覆盖升级，无需卸载，也不会删除工作区、会话、插件、Skills 或 ModLens 配置。
+v1.04.x 用户可在「偏好设置 → 软件更新」中直接检查并覆盖升级，无需卸载，也不会删除工作区、会话、插件、Skills 或 ModLens 配置。
