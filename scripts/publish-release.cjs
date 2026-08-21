@@ -23,6 +23,7 @@ const repo = 'Maskicruis/deepseek-harness-studio'
 const API = 'https://api.github.com'
 const UPLOADS_API = 'https://uploads.github.com'
 const VERSION = process.argv[2] || require('../package.json').version
+const METADATA_ONLY = process.argv.includes('--metadata-only')
 const TAG = `v${VERSION}`
 const DISPLAY_VERSION = String(VERSION).replace(/\.0$/, '') // 1.06.0 → 1.06
 const RELEASE_DIR = path.resolve(__dirname, '..', 'release')
@@ -114,6 +115,11 @@ async function main() {
     console.log(`已创建 release ${TAG}`)
   }
 
+  if (METADATA_ONLY) {
+    console.log(`✅ 发布页文案已更新: https://github.com/${repo}/releases/tag/${TAG}`)
+    return
+  }
+
   // 2. 上传资产
   const existing = new Map((release.assets || []).map((asset) => [asset.name, asset.id]))
   const candidates = [
@@ -157,7 +163,7 @@ function releaseNotes() {
 2. 粘贴阿里云百炼 DashScope API Key（\`sk-\` 开头）→ 点「保存并重启」；
 3. 在 Harness 模型选择器选名称带 \`(modlens vision)\` 的模型，粘贴图片即可识图。
 
-**读 PDF / Word / Excel：** 聊天框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + \`read_document\` 工具」，例如直接发「读取 \`D:\资料\报告.docx\` 的内容」。
+**读 PDF / Word / Excel：** 聊天框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + \`read_document\` 工具」，例如直接发「读取 \`D:\\资料\\报告.docx\` 的内容」。
 
 **以后怎么升级：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
