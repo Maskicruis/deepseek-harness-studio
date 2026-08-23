@@ -1,6 +1,6 @@
 # DSH 生态组件与 Skills
 
-Studio v1.2.0 在“插件中心”新增“生态组件”和“Skills”两个页面。精选组件均为第三方社区软件，不会静默预装；只有用户点击“接入”后才会写入 DSH `web` profile，并在安装完成后重启 Harness。
+Studio 在“插件中心”提供“生态组件”和“Skills”页面。精选组件均为第三方社区软件，不会静默预装；只有用户点击“接入”后才会写入 DSH `web` profile，并在安装完成后重启 Harness。
 
 ## 精选组件
 
@@ -11,9 +11,10 @@ Studio v1.2.0 在“插件中心”新增“生态组件”和“Skills”两个
 | `@liustack/modsearch` | `5.6.0` | 网页搜索、页面抓取与 X 搜索 | 安装启用后由智能体按任务调用 |
 | `@liustack/pptfast` | `0.20.0` | 生成可编辑 PPTX 演示文稿 | 适合汇报、方案和教学演示 |
 | `@wntediluvian/dsh-backup` | `0.2.3` | 会话、记忆、插件、Skills 与配置的备份恢复 | 安装后在 Harness 设置中检查备份策略 |
-| `@paicat1/dsh-screenshot` | `1.0.0` | 屏幕捕获与智能体截图工具 | 属于高敏感能力，建议按需启用，可配合 ModLens |
 
 固定版本可以避免上游更新导致同一个安装入口在不同时间得到不同结果。需要升级时点击“更新 / 修复”，Studio 会重新执行 DSH 插件安装命令。
+
+> `@paicat1/dsh-screenshot@1.0.0` 暂不再提供精选入口。该上游版本的 bundle patch 引用了未发布的 `dsh-screenshot` loader，会阻止整个 DSH 插件树启动。若此前已安装，Studio 会保留包文件并将其标记为“已隔离”；待上游修复后可通过“尝试更新并重新检查”恢复。
 
 ## ModLens 使用
 
@@ -63,14 +64,14 @@ Harness 的聊天输入框目前只接受图片（PNG、JPG、WebP、GIF），**
 
 ### 关于模型切换的报错
 
-在已经包含图片的会话里，切换到纯文本模型（如 `DeepSeek-V4-Flash` / `Pro`）会报错：
+v1.07.3 之前，在已经包含图片的会话里切换到纯文本模型（如 `DeepSeek-V4-Flash` / `Pro`）会报错：
 
 > model-unavailable: Model "..." does not accept image input, but this session already contains images: select an image-capable model.
 
-这是 Harness 的安全机制，不是故障：
+v1.07.3 起，Studio 会在发送给纯文本模型前把**历史图片数据**转换成明确的文字占位，同时保留原始提问和 ModLens 识别结论，因此可以在同一会话切回普通文本模型。安全限制只继续作用于输入框里尚未发送的新图片：
 
-- 会话里有图片 → 使用名称带 `(modlens vision)` 的模型；
-- 想用纯文本模型 → 新建一个不含图片的会话。
+- 当前输入框带有新图片 → 使用名称带 `(modlens vision)` 的模型；
+- 图片已经完成识别 → 可以直接切回普通 DeepSeek 文本模型继续对话。
 
 ## 本地 Skills
 

@@ -115,8 +115,14 @@ function registerRuntimeIpc() {
     harnessVersion: '0.1.0-rc.7',
   }))
   ipcMain.handle('runtime:status', () => runtime.getStatus())
-  ipcMain.handle('runtime:start', () => runtime.start())
-  ipcMain.handle('runtime:restart', () => runtime.restart())
+  ipcMain.handle('runtime:start', async () => {
+    await withRuntimeRestart(() => plugins.diagnose({ quarantine: true }), '正在执行启动自检', 'web profile')
+    return runtime.getStatus()
+  })
+  ipcMain.handle('runtime:restart', async () => {
+    await withRuntimeRestart(() => plugins.diagnose({ quarantine: true }), '正在执行启动自检', 'web profile')
+    return runtime.getStatus()
+  })
   ipcMain.handle('runtime:paths', () => ({
     ...runtime.getPaths(),
     dshHome: path.join(os.homedir(), '.dsh'),
@@ -176,21 +182,65 @@ function registerUpdateIpc() {
   })
 }
 
-async function withRuntimeRestart(operation) {
+function runtimeFailureMessage(status) {
+  const diagnostic = [...(status?.logs || [])].reverse().find((entry) => /plugin tree failed|cannot find package|module_not_found|error:|异常退出|启动超时/i.test(entry.message || ''))
+  const detail = String(diagnostic?.message || '').split(/\r?\n/).find((line) => /plugin tree failed|cannot find package|module_not_found|error:|异常退出|启动超时/i.test(line))
+  return [status?.message || 'Harness 未能启动', detail].filter(Boolean).join('；').slice(0, 1200)
+}
+
+function mergeStartupIsolation(value, isolation) {
+  if (!isolation?.quarantined?.length) return value
+  const quarantined = [...new Set([...(value?.quarantined || []), ...isolation.quarantined])]
+  if (value?.inventory) return { ...value, inventory: isolation.inventory, quarantined, startupIsolation: isolation }
+  if (value?.core && value?.community) return isolation.inventory
+  return value
+}
+
+async function recoverPluginStartup() {
+  await runtime.stop()
+  return plugins.isolateStartupFailures(async () => {
+    const status = await runtime.start({ timeoutMs: 25_000 })
+    const result = { ok: status.phase === 'running', message: status.phase === 'running' ? 'Harness 已就绪' : runtimeFailureMessage(status) }
+    await runtime.stop()
+    return result
+  })
+}
+
+async function withRuntimeRestart(operation, action = '插件操作', target = '') {
   if (pluginBusy) throw new Error('已有插件操作正在进行，请稍候。')
   pluginBusy = true
-  emit('plugins:busy', true)
-  await runtime.stop()
+  emit('plugins:busy', { busy: true, action, target })
+  let value
+  let operationError = null
+  let restartError = null
   try {
-    return await operation()
+    await runtime.stop()
+    value = await operation()
+  } catch (error) {
+    operationError = error
   } finally {
     try {
-      await runtime.start()
+      let status = await runtime.start({ timeoutMs: 30_000 })
+      if (status.phase !== 'running') {
+        const isolation = await recoverPluginStartup()
+        value = mergeStartupIsolation(value, isolation)
+        if (isolation.coreFailure) throw new Error(isolation.message)
+        status = await runtime.start({ timeoutMs: 30_000 })
+        if (status.phase !== 'running') throw new Error(runtimeFailureMessage(status))
+      }
+    } catch (error) {
+      restartError = error
     } finally {
       pluginBusy = false
-      emit('plugins:busy', false)
+      emit('plugins:busy', { busy: false, action: '', target: '' })
     }
   }
+  if (operationError) {
+    if (restartError) operationError.message = `${operationError.message || String(operationError)}；Harness 恢复失败：${restartError.message || String(restartError)}`
+    throw operationError
+  }
+  if (restartError) throw new Error(`插件操作已完成，但 Harness 重新启动失败：${restartError.message || String(restartError)}`)
+  return value
 }
 
 function registerPluginIpc() {
@@ -202,9 +252,14 @@ function registerPluginIpc() {
     })
     return result.canceled ? '' : result.filePaths[0]
   })
-  ipcMain.handle('plugins:install', (_event, source) => withRuntimeRestart(() => plugins.install(source)))
-  ipcMain.handle('plugins:remove', (_event, name) => withRuntimeRestart(() => plugins.remove(name)))
-  ipcMain.handle('plugins:toggle', (_event, { name, enabled }) => withRuntimeRestart(async () => plugins.toggle(name, enabled)))
+  ipcMain.handle('plugins:inspect-source', (_event, source) => plugins.inspectSource(source))
+  ipcMain.handle('plugins:diagnose', () => withRuntimeRestart(() => plugins.diagnose({ quarantine: true }), '正在检查插件启动兼容性', 'web profile'))
+  ipcMain.handle('plugins:install', (_event, source) => withRuntimeRestart(() => plugins.install(source), '正在安装插件', String(source || '')))
+  ipcMain.handle('plugins:update', (_event, name) => withRuntimeRestart(() => plugins.update(name), '正在更新插件', String(name || '')))
+  ipcMain.handle('plugins:repair', (_event, name) => withRuntimeRestart(() => plugins.repair(name), name ? '正在修复插件' : '正在修复插件环境', String(name || 'web profile')))
+  ipcMain.handle('plugins:remove', (_event, name) => withRuntimeRestart(() => plugins.remove(name), '正在卸载插件', String(name || '')))
+  ipcMain.handle('plugins:toggle', (_event, { name, enabled }) => withRuntimeRestart(async () => ({ inventory: plugins.toggle(name, enabled), quarantined: [] }), enabled ? '正在启用插件' : '正在停用插件', String(name || '')))
+  ipcMain.handle('plugins:open-location', (_event, name) => shell.openPath(plugins.location(name)))
   ipcMain.handle('plugins:open-profile', () => {
     fs.mkdirSync(plugins.profileDir, { recursive: true })
     return shell.openPath(plugins.profileDir)
@@ -337,7 +392,11 @@ app.whenReady().then(async () => {
     })
   })
 
-  await runtime.start()
+  try {
+    await withRuntimeRestart(() => plugins.diagnose({ quarantine: true }), '正在执行启动自检', 'web profile')
+  } catch (error) {
+    console.error('Harness startup recovery failed:', error)
+  }
   if (settings.get().autoCheckUpdates && getUpdateRepository()) {
     setTimeout(() => updates.check(), 8000)
   }

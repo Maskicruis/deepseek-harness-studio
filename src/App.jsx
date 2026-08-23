@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ArchiveRestore,
   Blocks,
-  Camera,
   Check,
   ChevronRight,
   CircleAlert,
@@ -130,17 +129,6 @@ const ECOSYSTEM_COMPONENTS = [
     hint: '安装后请在 Harness 设置页检查备份位置和保留策略。',
     url: 'https://www.npmjs.com/package/@wntediluvian/dsh-backup',
   },
-  {
-    name: '@paicat1/dsh-screenshot',
-    source: '@paicat1/dsh-screenshot@1.0.0',
-    version: '1.0.0',
-    title: 'DSH Screenshot 屏幕捕获',
-    category: '视觉',
-    icon: Camera,
-    description: '增加浏览器快捷截图与面向智能体的捕获工具，可配合 ModLens 完成截图读取。',
-    hint: '屏幕捕获属于高敏感能力，仅在需要时启用。',
-    url: 'https://www.npmjs.com/package/@paicat1/dsh-screenshot',
-  },
 ]
 
 function cx(...parts) {
@@ -155,7 +143,25 @@ function sourceLabel(kind) {
   if (kind === 'github') return 'GitHub'
   if (kind === 'local') return '本地'
   if (kind === 'core') return '核心'
+  if (kind === 'unknown') return '异常'
   return 'npm'
+}
+
+function pluginHealthMeta(health) {
+  const states = {
+    core: ['核心', 'healthy'],
+    ready: ['已启用', 'healthy'],
+    disabled: ['已停用', 'disabled'],
+    missing: ['文件缺失', 'error'],
+    invalid: ['清单错误', 'error'],
+    'load-failed': ['启动失败', 'error'],
+    quarantined: ['已隔离', 'warning'],
+    incompatible: ['不兼容', 'warning'],
+    orphan: ['孤立条目', 'warning'],
+    'core-missing': ['核心异常', 'error'],
+  }
+  const [label, tone] = states[health] || ['待检查', 'warning']
+  return { label, tone }
 }
 
 function IconButton({ title, children, onClick, danger = false, active = false, disabled = false }) {
@@ -298,47 +304,67 @@ function Toggle({ checked, disabled, onChange, label }) {
   )
 }
 
-function PluginCard({ plugin, busy, onToggle, onRemove }) {
+function PluginCard({ plugin, busy, onOpen, onRemove, onRepair, onToggle, onUpdate }) {
+  const health = pluginHealthMeta(plugin.health)
   return (
-    <article className={cx('plugin-card', !plugin.enabled && 'disabled')}>
+    <article className={cx('plugin-card', `health-${health.tone}`, !plugin.enabled && !plugin.hasIssue && 'disabled')}>
       <div className={cx('plugin-icon', plugin.builtIn && 'core')}>
-        {plugin.builtIn ? <Zap size={18} /> : <Package size={18} />}
+        {plugin.hasIssue ? <CircleAlert size={18} /> : plugin.builtIn ? <Zap size={18} /> : <Package size={18} />}
       </div>
       <div className="plugin-info">
         <div className="plugin-name-row">
           <strong>{shortName(plugin.name)}</strong>
           <span className={cx('source-chip', plugin.sourceKind)}>{sourceLabel(plugin.sourceKind)}</span>
+          {plugin.version ? <span className="version-mini">v{plugin.version}</span> : null}
+          <span className={cx('plugin-health', health.tone)}>{health.label}</span>
         </div>
-        <code title={plugin.name}>{plugin.name}</code>
-        <p title={plugin.source}>{plugin.source}</p>
+        <p className="plugin-description" title={plugin.description || plugin.healthMessage}>{plugin.description || plugin.healthMessage}</p>
+        <code title={`${plugin.name} · ${plugin.source}`}>{plugin.name} · {plugin.source}</code>
+        {plugin.hasIssue ? <p className="plugin-warning" title={plugin.healthMessage}>{plugin.healthMessage}</p> : null}
       </div>
       <div className="plugin-actions">
-        <Toggle
-          checked={plugin.enabled}
-          disabled={busy || plugin.builtIn}
-          label={`${plugin.enabled ? '停用' : '启用'} ${plugin.name}`}
-          onChange={(enabled) => onToggle(plugin.name, enabled)}
-        />
+        {plugin.canToggle ? (
+          <Toggle
+            checked={plugin.enabled}
+            disabled={busy}
+            label={`${plugin.enabled ? '停用' : '启用'} ${plugin.name}`}
+            onChange={(enabled) => onToggle(plugin.name, enabled)}
+          />
+        ) : null}
+        {plugin.packagePath ? <IconButton title="打开安装目录" disabled={busy} onClick={() => onOpen(plugin.name)}><FolderOpen size={14} /></IconButton> : null}
+        {!plugin.builtIn && ['missing', 'invalid'].includes(plugin.health) ? (
+          <IconButton title="修复插件" disabled={busy} onClick={() => onRepair(plugin.name)}><RotateCcw size={14} /></IconButton>
+        ) : null}
+        {!plugin.builtIn && ['load-failed', 'quarantined'].includes(plugin.health) && plugin.canUpdate ? (
+          <IconButton title="尝试更新并重新检查" disabled={busy} onClick={() => onUpdate(plugin.name)}><RefreshCw size={14} /></IconButton>
+        ) : null}
+        {!plugin.builtIn && plugin.canUpdate && !plugin.hasIssue ? (
+          <IconButton title="更新到最新版" disabled={busy} onClick={() => onUpdate(plugin.name)}><RefreshCw size={14} /></IconButton>
+        ) : null}
         {!plugin.builtIn ? (
-          <IconButton danger title="卸载插件" onClick={() => onRemove(plugin.name)}><Trash2 size={15} /></IconButton>
+          <IconButton danger title={plugin.orphan ? '清理孤立条目' : '卸载插件'} disabled={busy} onClick={() => onRemove(plugin.name)}><Trash2 size={15} /></IconButton>
         ) : null}
       </div>
     </article>
   )
 }
 
-function EcosystemCard({ component, installedPlugin, busy, onInstall, onConfigure }) {
+function EcosystemCard({ component, installedPlugin, busy, onInstall, onConfigure, onToggle }) {
   const Icon = component.icon
   const installed = Boolean(installedPlugin)
+  const disabled = installedPlugin?.health === 'disabled'
+  const issue = Boolean(installedPlugin?.hasIssue)
+  const installedVersion = installedPlugin?.version || ''
+  const action = () => disabled ? onToggle(component.name, true) : onInstall(component.source)
   return (
-    <article className={cx('ecosystem-card', installed && 'installed')}>
+    <article className={cx('ecosystem-card', installed && 'installed', issue && 'issue')}>
       <div className="ecosystem-card-head">
         <div className="ecosystem-icon"><Icon size={19} /></div>
         <div>
           <div className="ecosystem-title"><strong>{component.title}</strong><span>{component.category}</span></div>
           <code>{component.name}@{component.version}</code>
         </div>
-        {installed ? <span className="installed-badge"><CircleCheck size={12} />已接入</span> : null}
+        {installed ? <span className={cx('installed-badge', disabled && 'disabled', issue && 'issue')}>{issue ? <CircleAlert size={12} /> : <CircleCheck size={12} />}{issue ? '需处理' : disabled ? '已停用' : `v${installedVersion || component.version}`}</span> : null}
       </div>
       <p>{component.description}</p>
       <small>{component.hint}</small>
@@ -351,9 +377,9 @@ function EcosystemCard({ component, installedPlugin, busy, onInstall, onConfigur
             <Settings size={14} />配置视觉 API
           </button>
         ) : null}
-        <button type="button" className="component-install" disabled={busy} onClick={() => onInstall(component.source)}>
-          {busy ? <LoaderCircle className="spin" size={14} /> : installed ? <RefreshCw size={14} /> : <Package size={14} />}
-          {installed ? '更新 / 修复' : '一键接入'}
+        <button type="button" className="component-install" disabled={busy} onClick={action}>
+          {busy ? <LoaderCircle className="spin" size={14} /> : disabled ? <Zap size={14} /> : installed ? <RefreshCw size={14} /> : <Package size={14} />}
+          {disabled ? '重新启用' : issue ? '修复接入' : installed ? '更新 / 修复' : '一键接入'}
         </button>
       </div>
     </article>
@@ -374,30 +400,56 @@ function SkillCard({ skill, busy, onRemove }) {
   )
 }
 
-function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfigureModlens, onImportSkill, onInstall, onRefresh, onRefreshSkills, onRemove, onRemoveSkill, onToggle, toast }) {
+function PluginDrawer({ busy, inventory, skillInventory, logs, operation, onClearLogs, onClose, onConfigureModlens, onDiagnose, onImportSkill, onInstall, onOpenPlugin, onRefresh, onRefreshSkills, onRemove, onRemoveSkill, onRepair, onToggle, onUpdate, toast }) {
   const [tab, setTab] = useState('installed')
   const [source, setSource] = useState('')
   const [query, setQuery] = useState('')
   const [kind, setKind] = useState('npm')
+  const [filter, setFilter] = useState('all')
+  const [inspection, setInspection] = useState(null)
 
   const plugins = useMemo(() => [...(inventory.core || []), ...(inventory.community || [])], [inventory])
-  const filtered = plugins.filter((plugin) => `${plugin.name} ${plugin.source}`.toLowerCase().includes(query.toLowerCase()))
+  const filtered = plugins.filter((plugin) => {
+    const matchesQuery = `${plugin.name} ${plugin.source} ${plugin.description || ''}`.toLowerCase().includes(query.toLowerCase())
+    const matchesFilter = filter === 'all'
+      || (filter === 'enabled' && plugin.enabled && !plugin.hasIssue)
+      || (filter === 'disabled' && plugin.health === 'disabled')
+      || (filter === 'issues' && plugin.hasIssue)
+    return matchesQuery && matchesFilter
+  })
   const installedByName = useMemo(() => new Map((inventory.community || []).map((plugin) => [plugin.name, plugin])), [inventory])
+  const summary = inventory.summary || { total: inventory.count || 0, ready: 0, disabled: 0, issues: 0 }
+
+  const inspectCustomSource = async (value = source) => {
+    if (!value.trim()) return false
+    setInspection({ phase: 'checking', message: '正在验证插件来源…' })
+    try {
+      const result = await studio.plugins.inspectSource(value.trim())
+      setInspection({ phase: result.compatible === false ? 'error' : result.inspected ? 'ready' : 'info', ...result })
+      return result.compatible !== false
+    } catch (error) {
+      setInspection({ phase: 'error', message: error.message || String(error) })
+      return false
+    }
+  }
 
   const chooseLocal = async () => {
     const chosen = await studio.plugins.chooseLocal()
     if (chosen) {
       setKind('local')
       setSource(chosen)
+      await inspectCustomSource(chosen)
     }
   }
 
   const submit = async (event) => {
     event.preventDefault()
     if (!source.trim()) return
+    if (kind === 'local' && inspection?.phase !== 'ready' && !await inspectCustomSource()) return
     const ok = await onInstall(source.trim())
     if (ok) {
       setSource('')
+      setInspection(null)
       setTab('installed')
     }
   }
@@ -412,26 +464,47 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
         <IconButton title="关闭插件中心" onClick={onClose}><PanelRightClose size={18} /></IconButton>
       </div>
 
-      <div className="segmented-control multi">
+      <div className="segmented-control multi plugin-tabs">
         <button type="button" className={tab === 'installed' ? 'active' : ''} onClick={() => setTab('installed')}>
           已安装 <span>{inventory.count || 0}</span>
         </button>
         <button type="button" className={tab === 'ecosystem' ? 'active' : ''} onClick={() => setTab('ecosystem')}>生态组件</button>
         <button type="button" className={tab === 'skills' ? 'active' : ''} onClick={() => setTab('skills')}>Skills <span>{skillInventory.count || 0}</span></button>
         <button type="button" className={tab === 'import' ? 'active' : ''} onClick={() => setTab('import')}>自定义</button>
+        <button type="button" className={tab === 'activity' ? 'active' : ''} onClick={() => setTab('activity')}>活动 {logs.length ? <span>{logs.length}</span> : null}</button>
       </div>
 
       {tab === 'installed' ? (
         <div className="panel-body">
+          <div className="plugin-overview">
+            <div><strong>{summary.ready}</strong><span>社区启用</span></div>
+            <div><strong>{summary.disabled}</strong><span>社区停用</span></div>
+            <div className={summary.issues ? 'attention' : ''}><strong>{summary.issues}</strong><span>需处理</span></div>
+          </div>
+          {inventory.manifestError ? <div className="profile-alert"><CircleAlert size={16} /><span>{inventory.manifestError}</span></div> : null}
+          {summary.blocking ? <div className="profile-alert"><CircleAlert size={16} /><span>检测到 {summary.blocking} 个插件会阻止 Harness 启动。运行启动诊断可将故障插件安全隔离，插件文件不会被删除。</span></div> : null}
           <div className="search-box">
             <Search size={16} />
             <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索已安装插件" />
             <IconButton title="刷新列表" onClick={onRefresh}><RefreshCw size={14} /></IconButton>
           </div>
-          <div className="section-label"><span>运行时组件</span><small>{filtered.length}</small></div>
+          <div className="plugin-filter-row">
+            {[
+              ['all', '全部'],
+              ['enabled', '已启用'],
+              ['disabled', '已停用'],
+              ['issues', '需处理'],
+            ].map(([value, label]) => <button type="button" key={value} className={filter === value ? 'active' : ''} onClick={() => setFilter(value)}>{label}</button>)}
+          </div>
+          <div className="profile-actions">
+            <button type="button" disabled={busy} onClick={onDiagnose}><ShieldCheck size={14} />启动诊断</button>
+            <button type="button" disabled={busy} onClick={() => onRepair('')}><RotateCcw className={busy ? 'spin' : ''} size={14} />修复插件环境</button>
+            <button type="button" onClick={() => studio.plugins.openProfile()}><FolderOpen size={14} />打开 profile</button>
+          </div>
+          <div className="section-label"><span>运行时组件</span><small>{filtered.length}{inventory.scannedAt ? ' · 已扫描' : ''}</small></div>
           <div className="plugin-list">
             {filtered.map((plugin) => (
-              <PluginCard key={plugin.name} plugin={plugin} busy={busy} onToggle={onToggle} onRemove={onRemove} />
+              <PluginCard key={plugin.name} plugin={plugin} busy={busy} onOpen={onOpenPlugin} onToggle={onToggle} onRemove={onRemove} onRepair={onRepair} onUpdate={onUpdate} />
             ))}
             {!filtered.length ? (
               <div className="empty-state"><Blocks size={26} /><strong>没有匹配的插件</strong><p>换一个关键词，或从社区导入新插件。</p></div>
@@ -454,6 +527,7 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
                 busy={busy}
                 onInstall={onInstall}
                 onConfigure={onConfigureModlens}
+                onToggle={onToggle}
               />
             ))}
           </div>
@@ -482,7 +556,7 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
           </div>
           <div className="skill-note"><Zap size={15} /><span>DSH 会热刷新 Skill 目录，通常无需重启运行时。</span></div>
         </div>
-      ) : (
+      ) : tab === 'import' ? (
         <div className="panel-body import-body">
           <div className="import-hero">
             <div className="stacked-icons"><Package /><Github /><HardDrive /></div>
@@ -496,7 +570,7 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
               ['github', Github, 'GitHub'],
               ['local', FolderOpen, '本地目录'],
             ].map(([value, Icon, label]) => (
-              <button type="button" key={value} className={kind === value ? 'active' : ''} onClick={() => setKind(value)}>
+              <button type="button" key={value} className={kind === value ? 'active' : ''} onClick={() => { setKind(value); setSource(''); setInspection(null) }}>
                 <Icon size={17} /><span>{label}</span>{kind === value ? <Check size={14} /> : null}
               </button>
             ))}
@@ -508,12 +582,22 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
               <input
                 id="plugin-source"
                 value={source}
-                onChange={(event) => setSource(event.target.value)}
+                onChange={(event) => { setSource(event.target.value); setInspection(null) }}
                 placeholder={kind === 'npm' ? '@scope/dsh-plugin' : kind === 'github' ? 'github:owner/repository' : '选择插件文件夹'}
                 readOnly={kind === 'local'}
               />
               {kind === 'local' ? <button type="button" onClick={chooseLocal}><Folder size={16} />选择</button> : null}
             </div>
+            {source.trim() ? <button className="validate-source" type="button" disabled={busy || inspection?.phase === 'checking'} onClick={() => inspectCustomSource()}>{inspection?.phase === 'checking' ? <LoaderCircle className="spin" size={14} /> : <ShieldCheck size={14} />}验证来源</button> : null}
+            {inspection ? (
+              <div className={cx('source-inspection', inspection.phase)}>
+                {inspection.phase === 'ready' ? <CircleCheck size={16} /> : inspection.phase === 'checking' ? <LoaderCircle className="spin" size={16} /> : inspection.phase === 'info' ? <Info size={16} /> : <CircleAlert size={16} />}
+                <div>
+                  <strong>{inspection.name ? `${inspection.name}${inspection.version ? ` · v${inspection.version}` : ''}` : inspection.phase === 'ready' ? '来源格式可用' : '验证结果'}</strong>
+                  <p>{inspection.message}</p>
+                </div>
+              </div>
+            ) : null}
             <button className="primary-button install-button" disabled={busy || !source.trim()} type="submit">
               {busy ? <LoaderCircle className="spin" size={17} /> : <Package size={17} />}
               {busy ? '正在安装并重启…' : '导入并启用插件'}
@@ -529,12 +613,25 @@ function PluginDrawer({ busy, inventory, skillInventory, logs, onClose, onConfig
             <Globe2 size={17} />浏览 GitHub 社区插件<ExternalLink size={14} />
           </button>
 
-          {logs.length ? (
-            <div className="install-log">
-              <div><TerminalSquare size={15} /><span>安装日志</span></div>
-              <pre>{logs.slice(-12).map((entry) => `[${entry.level}] ${entry.message}`).join('\n')}</pre>
-            </div>
-          ) : null}
+        </div>
+      ) : (
+        <div className="panel-body activity-body">
+          <div className={cx('operation-card', operation?.busy && 'running')}>
+            <div className="operation-icon">{operation?.busy ? <LoaderCircle className="spin" size={20} /> : <TerminalSquare size={20} />}</div>
+            <div><strong>{operation?.busy ? operation.action || '正在处理插件' : '插件活动记录'}</strong><p>{operation?.busy ? operation.target || 'Harness 完成后会自动重新启动。' : '安装、更新、修复和启停记录会显示在这里。'}</p></div>
+          </div>
+          <div className="activity-toolbar">
+            <span><TerminalSquare size={14} />运行日志</span>
+            <button type="button" disabled={!logs.length || busy} onClick={onClearLogs}>清空</button>
+          </div>
+          <div className="activity-log">
+            {logs.length ? logs.map((entry, index) => (
+              <div key={`${entry.timestamp || ''}-${index}`} className={cx('activity-entry', entry.level)}>
+                <span>{entry.level === 'warn' ? 'WARN' : entry.level === 'error' ? 'ERROR' : 'INFO'}</span>
+                <p>{entry.message}</p>
+              </div>
+            )) : <div className="empty-state"><TerminalSquare size={26} /><strong>暂无插件活动</strong><p>执行插件操作后，可在这里查看完整反馈。</p></div>}
+          </div>
         </div>
       )}
       {toast ? <div className={cx('inline-toast', toast.type)}>{toast.type === 'error' ? <CircleAlert size={16} /> : <CircleCheck size={16} />}{toast.message}</div> : null}
@@ -865,7 +962,7 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
 export default function App() {
   const [runtime, setRuntime] = useState(EMPTY_RUNTIME)
   const [panel, setPanel] = useState(null)
-  const [inventory, setInventory] = useState({ core: [], community: [], count: 0, profileDir: '' })
+  const [inventory, setInventory] = useState({ core: [], community: [], count: 0, profileDir: '', summary: { total: 0, ready: 0, disabled: 0, issues: 0, blocking: 0 } })
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
@@ -876,6 +973,7 @@ export default function App() {
   const [balance, setBalance] = useState(null)
   const [balanceBusy, setBalanceBusy] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [pluginOperation, setPluginOperation] = useState({ busy: false, action: '', target: '' })
   const [skillBusy, setSkillBusy] = useState(false)
   const [pluginLogs, setPluginLogs] = useState([])
   const [toast, setToast] = useState(null)
@@ -941,7 +1039,11 @@ export default function App() {
       setRuntime((current) => ({ ...current, logs: [...(current.logs || []), entry].slice(-100) }))
     })
     const disposePluginLog = studio.plugins.onLog((entry) => setPluginLogs((current) => [...current, entry].slice(-80)))
-    const disposeBusy = studio.plugins.onBusy(setBusy)
+    const disposeBusy = studio.plugins.onBusy((payload) => {
+      const next = typeof payload === 'boolean' ? { busy: payload, action: '', target: '' } : payload || { busy: false, action: '', target: '' }
+      setBusy(Boolean(next.busy))
+      setPluginOperation(next)
+    })
     const disposeMaximized = studio.window.onMaximized(setIsMaximized)
     const disposePathDetected = studio.workspace.onDetected((result) => {
       notify(result.registered ? `已识别任务路径：${result.path}` : `已识别路径：${result.path}（${result.reason}）`, result.registered ? 'success' : 'info')
@@ -984,7 +1086,8 @@ export default function App() {
       const result = await studio.plugins.install(source)
       setInventory(result.inventory)
       const names = result.installed?.length ? result.installed.join('、') : source
-      notify(`插件已导入：${names}`)
+      const quarantined = result.quarantined?.length ? `启动检查失败，已自动隔离：${result.quarantined.join('、')}` : ''
+      notify(quarantined || (result.warning ? `插件已安装但需要处理：${result.warning}` : `插件已导入：${names}`), quarantined || result.warning ? 'error' : 'success')
       return true
     } catch (error) {
       notify(error.message || String(error), 'error')
@@ -1003,8 +1106,41 @@ export default function App() {
 
   const togglePlugin = async (name, enabled) => {
     try {
-      setInventory(await studio.plugins.toggle(name, enabled))
-      notify(`${enabled ? '已启用' : '已停用'} ${shortName(name)}`)
+      const result = await studio.plugins.toggle(name, enabled)
+      setInventory(result.inventory)
+      notify(result.quarantined?.length ? `启动验证失败，已重新隔离：${result.quarantined.join('、')}` : `${enabled ? '已启用' : '已停用'} ${shortName(name)}`, result.quarantined?.length ? 'error' : 'success')
+    } catch (error) { notify(error.message || String(error), 'error') }
+  }
+
+  const updatePlugin = async (name) => {
+    setPluginLogs([])
+    try {
+      const result = await studio.plugins.update(name)
+      setInventory(result.inventory)
+      notify(result.quarantined?.length ? `更新后仍无法启动，已隔离 ${shortName(name)}` : result.restored?.length ? `已更新、复检并恢复 ${shortName(name)}` : `已更新 ${shortName(name)}`, result.quarantined?.length ? 'error' : 'success')
+    } catch (error) { notify(error.message || String(error), 'error') }
+  }
+
+  const repairPlugin = async (name = '') => {
+    setPluginLogs([])
+    try {
+      const result = await studio.plugins.repair(name)
+      setInventory(result.inventory)
+      notify(result.quarantined?.length ? `修复后仍有故障插件，已隔离：${result.quarantined.join('、')}` : result.restored?.length ? `已修复、复检并恢复 ${shortName(name)}` : name ? `已修复 ${shortName(name)}` : '插件环境检查与修复已完成', result.quarantined?.length ? 'error' : 'success')
+    } catch (error) { notify(error.message || String(error), 'error') }
+  }
+
+  const openPluginLocation = async (name) => {
+    try { await studio.plugins.openLocation(name) }
+    catch (error) { notify(error.message || String(error), 'error') }
+  }
+
+  const diagnosePlugins = async () => {
+    setPluginLogs([])
+    try {
+      const result = await studio.plugins.diagnose()
+      setInventory(result.inventory)
+      notify(result.quarantined?.length ? `已隔离启动故障插件：${result.quarantined.join('、')}` : '插件启动诊断通过，Harness 已正常恢复')
     } catch (error) { notify(error.message || String(error), 'error') }
   }
 
@@ -1123,15 +1259,21 @@ export default function App() {
             inventory={inventory}
             skillInventory={skillInventory}
             logs={pluginLogs}
+            operation={pluginOperation}
+            onClearLogs={() => setPluginLogs([])}
             onClose={() => setPanel(null)}
             onConfigureModlens={() => setPanel('settings')}
+            onDiagnose={diagnosePlugins}
             onImportSkill={importSkill}
             onInstall={installPlugin}
+            onOpenPlugin={openPluginLocation}
             onRefresh={refreshPlugins}
             onRefreshSkills={refreshSkills}
             onRemove={removePlugin}
             onRemoveSkill={removeSkill}
+            onRepair={repairPlugin}
             onToggle={togglePlugin}
+            onUpdate={updatePlugin}
             toast={toast}
           />
         ) : null}

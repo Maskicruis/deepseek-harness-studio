@@ -178,8 +178,11 @@ class RuntimeManager extends EventEmitter {
     }
   }
 
-  async start() {
+  async start(options = {}) {
     if (this.child || this.status.phase === 'starting' || this.status.phase === 'running') return this.getStatus()
+
+    const requestedTimeout = Number(options?.timeoutMs)
+    const startupTimeoutMs = Number.isFinite(requestedTimeout) ? Math.max(5_000, Math.min(requestedTimeout, 120_000)) : 120_000
 
     const settings = this.settingsStore.get()
     const workspace = path.resolve(settings.workspace || path.join(os.homedir(), 'DeepSeek Harness', 'Workspace'))
@@ -245,7 +248,7 @@ class RuntimeManager extends EventEmitter {
       })
     })
 
-    const deadline = Date.now() + 120_000
+    const deadline = Date.now() + startupTimeoutMs
     while (Date.now() < deadline && this.child === child) {
       const probe = await probeHarness(settings.port, 1500)
       if (probe.ready) {

@@ -1,11 +1,15 @@
 const mockInventory = {
   profileDir: '~/.dsh/profiles/web',
+  manifestPath: '~/.dsh/profiles/web/package.json',
+  manifestError: '',
   core: [
-    { name: '@deepseek-ai/dsh-base', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core' },
-    { name: '@deepseek-ai/dsh-web-app', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core' },
+    { name: '@deepseek-ai/dsh-base', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core', health: 'core', healthMessage: '随 Harness 提供并始终启用。', description: 'DeepSeek Harness 核心运行时能力。', canToggle: false },
+    { name: '@deepseek-ai/dsh-web-app', source: '随 Harness 提供', enabled: true, builtIn: true, sourceKind: 'core', health: 'core', healthMessage: '随 Harness 提供并始终启用。', description: 'DeepSeek Harness Web 应用界面。', canToggle: false },
   ],
   community: [],
   count: 0,
+  summary: { total: 0, ready: 0, disabled: 0, issues: 0, blocking: 0 },
+  scannedAt: new Date().toISOString(),
 }
 
 const mockSkills = {
@@ -115,9 +119,14 @@ function createBrowserMock() {
     plugins: {
       list: async () => mockInventory,
       chooseLocal: async () => 'E:\\DeepSeek\\plugins\\example-plugin',
+      inspectSource: async (source) => ({ source, sourceKind: 'local', inspected: true, compatible: true, name: 'example-plugin', version: '1.0.0', message: '本地插件结构验证通过。' }),
+      diagnose: async () => ({ ok: true, blocking: [], quarantined: [], inventory: mockInventory }),
       install: async () => ({ installed: ['example-plugin'], inventory: mockInventory }),
+      update: async () => ({ inventory: mockInventory }),
+      repair: async () => ({ inventory: mockInventory }),
       remove: async () => ({ inventory: mockInventory }),
-      toggle: async () => mockInventory,
+      toggle: async () => ({ inventory: mockInventory, quarantined: [] }),
+      openLocation: async () => {},
       openProfile: async () => {},
       onBusy: () => () => {},
       onLog: () => () => {},

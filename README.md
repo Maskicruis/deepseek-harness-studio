@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.3-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.4-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.4/DeepSeek-Harness-Studio-Setup-1.07.4-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.3/DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe)（免安装，解压即用）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.4-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.4/DeepSeek-Harness-Studio-Setup-1.07.4-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.4-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.4/DeepSeek-Harness-Studio-Portable-1.07.4-x64.exe)（免安装，解压即用）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -28,14 +28,16 @@
 
 **模型切换说明：** v1.07.3 起，使用 ModLens 识图后可以在同一会话直接切回普通 DeepSeek 文本模型。历史图片会被转换为“图片已省略”的文字占位，原始提问文字和 ModLens 识别结论继续保留；输入框中尚未发送的新图片仍需使用带 `(modlens vision)` 的模型。
 
+**插件启动保护：** v1.07.4 起，应用启动和插件变更后都会验证 Harness 是否真正可用；故障组件会被定位并持久隔离，不会再因安装其他组件而被意外重新启用。
+
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
 ## 已实现
 
 - 原生无边框桌面窗口、启动动画、运行状态与故障恢复。
 - 官方 Harness Web UI：会话、工作区、模型设置、工具调用、权限、Skills、子智能体等能力由 Harness 提供。
-- 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录。
-- 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、DSH Backup 和 DSH Screenshot 的版本化一键接入入口。
+- 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录；展示实际安装版本、DSH bundle 与加载模块健康状态，并提供启动诊断、安全隔离、筛选、启停、更新、修复、卸载、安装目录和完整活动日志。
+- 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、文档读取和 DSH Backup 的版本化一键接入入口。
 - ModLens 视觉 API 设置：默认「阿里千问 Qwen-VL」（阿里云百炼 DashScope，国内直连），其余 Gemini、Anthropic、Claude CLI、OpenAI 兼容等多模态端点折叠进「高级选项」；检测引擎状态并在保存后自动重启 Harness；API Key 不进入项目或 Git。
 - Token 余额显示：顶栏实时显示 DeepSeek 账户余额，点击可刷新；读取 `~/.dsh/.credentials.yaml` 中的 `DEEPSEEK_API_KEY`。
 - DSH Skill 管理：导入、发现和移除包含 `SKILL.md` 的本地技能包；Harness 可热刷新并通过 `/skill-name` 调用。
@@ -72,8 +74,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.3-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
-- `DeepSeek-Harness-Studio-Portable-1.07.3-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.07.4-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.07.4-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -81,10 +83,12 @@ npm run dist
 
 - 安装、部署与数据迁移：[docs/INSTALL_CN.md](docs/INSTALL_CN.md)
 - 精选生态组件与 ModLens 使用：[docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)
+- 插件中心使用与故障恢复：[docs/PLUGIN_CENTER_CN.md](docs/PLUGIN_CENTER_CN.md)
 - 版本更新与 GitHub 发布：[docs/UPDATES_CN.md](docs/UPDATES_CN.md)
 
 ## 版本说明
 
+- v1.07.4 —— 插件中心重构、真实启动诊断与故障组件持久隔离，见 [docs/RELEASE_NOTES_1.07.4_CN.md](docs/RELEASE_NOTES_1.07.4_CN.md)。
 - v1.07.3 —— 修复 ModLens 会话无法切回普通文本模型的问题，见 [docs/RELEASE_NOTES_1.07.3_CN.md](docs/RELEASE_NOTES_1.07.3_CN.md)。
 - v1.07.2 —— 文档读取组件与使用说明，并修复静默更新失败问题，见 [docs/RELEASE_NOTES_1.07.2_CN.md](docs/RELEASE_NOTES_1.07.2_CN.md)。
 - v1.06.0 —— 视觉模块简化（默认阿里千问）与静默覆盖升级，见 [docs/RELEASE_NOTES_1.06.0_CN.md](docs/RELEASE_NOTES_1.06.0_CN.md)。
@@ -99,6 +103,8 @@ npm run dist
 
 ```powershell
 dsh plugin --profile web add <source>
+dsh plugin --profile web update <package> --latest
+dsh plugin --profile web install
 dsh plugin --profile web remove <package>
 ```
 
