@@ -67,6 +67,8 @@ GitHub:  github:owner/repository 或 https://github.com/owner/repository
 
 npm 和 GitHub 来源无法在下载前读取清单，因此“验证来源”只检查输入格式；安装完成后会立即执行相同的 DSH bundle 健康检查。若下载到的是普通依赖，插件中心会标记为“不兼容”，不会提供启用开关。
 
+插件安装不会使用开发机固定路径。Node、DSH CLI、pnpm shim 和 profile 都从当前安装目录与当前 Windows 用户目录动态解析；若应用移动或覆盖安装，pnpm shim 会自动重写。v1.07.5 起，npm 官方源出现连接重置、超时、DNS 或网络不可达错误时，会自动切换 `https://registry.npmmirror.com` 重试。活动日志会显示本次操作实际使用的 Node 和 profile 路径。
+
 ## 活动与故障恢复
 
 “活动”页显示当前操作、目标和 DSH/pnpm 输出。插件安装、更新、修复、卸载和启停期间，Studio 会暂时停止 Harness，操作结束后自动启动并验证其实际进入运行状态。若启动失败，界面会显示运行时诊断而不是误报操作成功。错误日志会保留在本次应用会话中，便于定位网络、版本、构建脚本或依赖问题。

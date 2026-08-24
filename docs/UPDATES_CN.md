@@ -50,7 +50,7 @@ npm run dist
 正式 Release 可使用仓库内置发布脚本创建并上传已复核的本地产物。脚本通过 Git Credential Manager 使用当前 GitHub 登录凭据，不会把 Token 写入项目文件：
 
 ```powershell
-npm run release:publish -- 1.07.4
+npm run release:publish -- 1.07.5
 ```
 
 发布新版本时，先同步修改版本号、README、CHANGELOG 与版本说明并提交源码，推送 `main` 和 `v<version>` 标签；随后运行内置发布脚本。脚本会更新 Release 标题和正文，并上传安装包、便携版、blockmap 与 `SHA256SUMS.txt`。

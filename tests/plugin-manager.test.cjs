@@ -5,9 +5,11 @@ const os = require('node:os')
 const path = require('node:path')
 const {
   CORE_BUNDLES,
+  DOMESTIC_NPM_REGISTRY,
   PluginManager,
   createPnpmShim,
   inferSourceKind,
+  isPluginNetworkFailure,
   normalizePackageName,
   normalizePluginSource,
   requestedPackageName,
@@ -58,12 +60,58 @@ test('createPnpmShim creates a launcher beside the DSH home', () => {
   fs.rmSync(temporary, { recursive: true, force: true })
 })
 
+test('createPnpmShim rewrites an absolute launcher after the app installation moves', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-pnpm-shim-move-test-'))
+  const nodeModules = path.join(temporary, 'moved app', 'resources', 'app', 'node_modules')
+  const cliPath = path.join(nodeModules, '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+  const pnpmEntry = path.join(nodeModules, 'pnpm', 'bin', 'pnpm.cjs')
+  const dshHome = path.join(temporary, 'another user', '.dsh')
+  fs.mkdirSync(path.dirname(cliPath), { recursive: true })
+  fs.mkdirSync(path.dirname(pnpmEntry), { recursive: true })
+  fs.writeFileSync(cliPath, '')
+  fs.writeFileSync(pnpmEntry, '')
+  const staleNode = 'D:\\Old Fixed Install\\node.exe'
+  const movedNode = path.join(temporary, 'moved app', 'resources', 'runtime', 'node.exe')
+  const first = createPnpmShim({ cliPath, nodePath: staleNode, dshHome })
+  assert.match(fs.readFileSync(first.shimPath, 'utf8'), /Old Fixed Install/)
+  createPnpmShim({ cliPath, nodePath: movedNode, dshHome })
+  const rewritten = fs.readFileSync(first.shimPath, 'utf8')
+  assert.equal(rewritten.includes(staleNode), false)
+  assert.equal(rewritten.includes(movedNode), true)
+  fs.rmSync(temporary, { recursive: true, force: true })
+})
+
 test('inferSourceKind identifies npm, GitHub, and local sources', () => {
   assert.equal(inferSourceKind('@scope/plugin'), 'npm')
   assert.equal(inferSourceKind('github:owner/repo'), 'github')
   assert.equal(inferSourceKind('https://github.com/owner/repo'), 'github')
   assert.equal(inferSourceKind(path.resolve('local-plugin')), 'local')
   assert.equal(inferSourceKind('file:E:/plugins/local-plugin'), 'local')
+})
+
+test('network failures retry plugin commands through the domestic npm mirror', async () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-studio-registry-fallback-test-'))
+  const profile = path.join(temporary, 'profiles', 'web')
+  fs.mkdirSync(profile, { recursive: true })
+  fs.writeFileSync(path.join(profile, 'package.json'), JSON.stringify({
+    dependencies: {},
+    dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+  }))
+  const commands = []
+  const manager = new PluginManager({
+    cliPath: 'unused', nodePath: 'unused', dshHome: temporary,
+    commandRunner: async (args) => {
+      commands.push(args)
+      if (commands.length === 1) throw new Error('ERR_PNPM_META_FETCH_FAIL ECONNRESET registry.npmjs.org')
+      return 'ok'
+    },
+  })
+  await manager.repair()
+  assert.equal(isPluginNetworkFailure(new Error('request failed: ETIMEDOUT')), true)
+  assert.equal(isPluginNetworkFailure(new Error('ERR_PNPM_FETCH_404')), false)
+  assert.deepEqual(commands[0], ['install', '--reporter=append-only'])
+  assert.deepEqual(commands[1], ['install', '--reporter=append-only', `--registry=${DOMESTIC_NPM_REGISTRY}`])
+  fs.rmSync(temporary, { recursive: true, force: true })
 })
 
 test('plugin inventory separates core and community bundles', () => {

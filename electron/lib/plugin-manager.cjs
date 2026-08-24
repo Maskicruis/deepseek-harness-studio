@@ -8,6 +8,7 @@ const YAML = require('yaml')
 const CORE_BUNDLES = new Set(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
 const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/i
 const QUARANTINE_FILENAME = '.studio-quarantine.json'
+const DOMESTIC_NPM_REGISTRY = 'https://registry.npmmirror.com'
 
 function normalizePluginSource(source) {
   const value = String(source || '').trim()
@@ -95,6 +96,11 @@ function requestedPackageName(source) {
     : value.match(/^([^@]+)(?:@.+)?$/)
   if (!match) return ''
   try { return normalizePackageName(match[1]) } catch { return '' }
+}
+
+function isPluginNetworkFailure(error) {
+  const message = String(error?.message || error || '')
+  return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ERR_SOCKET_TIMEOUT|ERR_PNPM_(?:META_)?FETCH_FAIL|network socket disconnected|fetch failed|request timed out/i.test(message)
 }
 
 function analyzeBundlePatch({ profileDir, directory, manifest }) {
@@ -415,17 +421,18 @@ class PluginManager {
   async #run(args) {
     if (this.operation) throw new Error('已有插件操作正在进行，请稍候。')
     this.operation = args.join(' ')
-    this.onLog({ level: 'info', message: `dsh plugin ${args.join(' ')}`, timestamp: new Date().toISOString() })
-    try {
-      if (this.commandRunner) return await this.commandRunner(args)
+    const execute = async (commandArgs) => {
+      this.onLog({ level: 'info', message: `dsh plugin ${commandArgs.join(' ')}`, timestamp: new Date().toISOString() })
+      this.onLog({ level: 'info', message: `插件运行环境：Node=${this.nodePath} · Profile=${this.profileDir}`, timestamp: new Date().toISOString() })
+      if (this.commandRunner) return this.commandRunner(commandArgs)
       if (!this.nodePath || !fs.existsSync(this.nodePath)) throw new Error('找不到 Node.js 运行时。')
       if (!this.cliPath || !fs.existsSync(this.cliPath)) throw new Error('找不到 DeepSeek Harness CLI。')
 
       fs.mkdirSync(this.profileDir, { recursive: true })
-      return await new Promise((resolve, reject) => {
+      return new Promise((resolve, reject) => {
         const bundledBin = path.resolve(path.dirname(this.cliPath), '..', '..', '..', '.bin')
         const { shimDir } = createPnpmShim({ cliPath: this.cliPath, nodePath: this.nodePath, dshHome: this.dshHome })
-        const child = spawn(this.nodePath, [this.cliPath, 'plugin', '--profile', 'web', ...args], {
+        const child = spawn(this.nodePath, [this.cliPath, 'plugin', '--profile', 'web', ...commandArgs], {
           cwd: this.profileDir,
           env: {
             ...process.env,
@@ -452,6 +459,16 @@ class PluginManager {
           else reject(new Error(output.trim() || `插件命令退出，代码 ${code}`))
         })
       })
+    }
+    try {
+      try {
+        return await execute(args)
+      } catch (error) {
+        if (!isPluginNetworkFailure(error) || args.some((argument) => /^--registry(?:=|$)/.test(argument))) throw error
+        const fallbackArgs = [...args, `--registry=${DOMESTIC_NPM_REGISTRY}`]
+        this.onLog({ level: 'warn', message: `npm 官方源连接失败，正在切换国内镜像重试：${DOMESTIC_NPM_REGISTRY}`, timestamp: new Date().toISOString() })
+        return await execute(fallbackArgs)
+      }
     } finally {
       this.operation = null
     }
@@ -702,12 +719,14 @@ class PluginManager {
 
 module.exports = {
   CORE_BUNDLES,
+  DOMESTIC_NPM_REGISTRY,
   PluginManager,
   analyzeBundlePatch,
   communityRecord,
   createPnpmShim,
   hasDshBundle,
   inferSourceKind,
+  isPluginNetworkFailure,
   normalizePackageName,
   normalizePluginSource,
   packageDirectory,
