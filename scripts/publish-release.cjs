@@ -173,7 +173,13 @@ function releaseNotes() {
 
 ## 📋 v${DISPLAY_VERSION} 更新内容
 
-### 🌐 跨设备插件安装
+### 🧩 通用 pnpm 失败恢复
+- DSH 只返回通用 pnpm 错误时，也会自动切换国内镜像重试
+- 不再要求错误文本必须保留底层网络错误代码
+- pnpm 子进程输出改用连续 UTF-8 解码，避免中文跨数据分块时显示为乱码
+- 双线路均失败时，会明确提示 npm 官方源和国内镜像均已尝试
+
+### 🌐 跨设备路径兼容
 - 发布包不包含开发机盘符、用户名或工程目录硬编码
 - Node、DSH CLI、pnpm shim 与 profile 均根据当前设备动态解析
 - 覆盖安装、修改安装目录或迁移 \`.dsh\` 后，pnpm shim 会自动重写为当前程序路径
@@ -181,8 +187,8 @@ function releaseNotes() {
 
 ### 🇨🇳 npm 国内镜像回退
 - 插件安装默认保留 npm 官方源，避免镜像同步延迟影响新发布组件
-- 官方源发生连接重置、超时、DNS 或网络不可达错误时，自动切换 \`https://registry.npmmirror.com\` 重试
-- DSH/pnpm 已在带空格的自定义安装目录与全新用户 profile 中完成真实安装验证
+- 官方源失败或 DSH 返回通用 pnpm 错误时，自动切换 \`https://registry.npmmirror.com\` 重试
+- DSH/pnpm 已使用现有 5 个社区组件的 profile 副本完成隔离安装验证
 
 ### 🛟 延续 v1.07.4 启动保护
 - 应用启动和插件变更后仍会确认 Harness 真正进入运行状态

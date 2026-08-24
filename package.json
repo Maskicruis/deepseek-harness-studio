@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-studio",
-  "version": "1.07.5",
+  "version": "1.07.6",
   "description": "A polished Windows desktop shell for DeepSeek Harness with community plugin management.",
   "main": "electron/main.cjs",
   "author": "DeepSeek Harness Studio",

@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.5-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.5/DeepSeek-Harness-Studio-Setup-1.07.5-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.6-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.6/DeepSeek-Harness-Studio-Setup-1.07.6-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.5-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.5/DeepSeek-Harness-Studio-Setup-1.07.5-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.5-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.5/DeepSeek-Harness-Studio-Portable-1.07.5-x64.exe)（免安装，解压即用）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.6-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.6/DeepSeek-Harness-Studio-Setup-1.07.6-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.6-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.6/DeepSeek-Harness-Studio-Portable-1.07.6-x64.exe)（免安装，解压即用）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -31,6 +31,8 @@
 **插件启动保护：** v1.07.4 起，应用启动和插件变更后都会验证 Harness 是否真正可用；故障组件会被定位并持久隔离，不会再因安装其他组件而被意外重新启用。
 
 **跨设备插件安装：** v1.07.5 起，所有运行路径都按当前设备动态生成；npm 官方源发生连接重置、超时或 DNS/网络错误时，会自动切换国内 npm 镜像重试。
+
+**通用 pnpm 失败恢复：** v1.07.6 起，即使 DSH 隐藏了底层网络错误、只返回 `pnpm failed in profile directory`，也会自动切换国内镜像；插件错误输出使用连续 UTF-8 解码，不再出现成串乱码。
 
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
@@ -76,8 +78,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.5-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
-- `DeepSeek-Harness-Studio-Portable-1.07.5-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.07.6-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.07.6-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -90,6 +92,7 @@ npm run dist
 
 ## 版本说明
 
+- v1.07.6 —— 修复 DSH 通用 pnpm 错误未触发国内镜像回退及错误文本乱码，见 [docs/RELEASE_NOTES_1.07.6_CN.md](docs/RELEASE_NOTES_1.07.6_CN.md)。
 - v1.07.5 —— 修复部分设备的插件源网络失败，验证自定义安装目录与迁移路径，见 [docs/RELEASE_NOTES_1.07.5_CN.md](docs/RELEASE_NOTES_1.07.5_CN.md)。
 - v1.07.4 —— 插件中心重构、真实启动诊断与故障组件持久隔离，见 [docs/RELEASE_NOTES_1.07.4_CN.md](docs/RELEASE_NOTES_1.07.4_CN.md)。
 - v1.07.3 —— 修复 ModLens 会话无法切回普通文本模型的问题，见 [docs/RELEASE_NOTES_1.07.3_CN.md](docs/RELEASE_NOTES_1.07.3_CN.md)。

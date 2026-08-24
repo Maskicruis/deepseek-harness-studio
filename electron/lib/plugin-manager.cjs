@@ -3,6 +3,7 @@ const fs = require('node:fs')
 const { createRequire } = require('node:module')
 const os = require('node:os')
 const path = require('node:path')
+const { StringDecoder } = require('node:string_decoder')
 const YAML = require('yaml')
 
 const CORE_BUNDLES = new Set(['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'])
@@ -100,7 +101,20 @@ function requestedPackageName(source) {
 
 function isPluginNetworkFailure(error) {
   const message = String(error?.message || error || '')
-  return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ERR_SOCKET_TIMEOUT|ERR_PNPM_(?:META_)?FETCH_FAIL|network socket disconnected|fetch failed|request timed out/i.test(message)
+  return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ERR_SOCKET_TIMEOUT|ERR_PNPM_(?:META_)?FETCH_FAIL|network socket disconnected|fetch failed|request timed out|pnpm failed in profile directory/i.test(message)
+}
+
+function normalizePluginError(error, { mirrorRetried = false } = {}) {
+  const detail = String(error?.message || error || '')
+    .replace(/\uFFFD+/g, '')
+    .replace(/[ \t]+\r?\n/g, '\n')
+    .trim()
+  const prefix = mirrorRetried
+    ? '插件操作失败：npm 官方源和国内镜像均未成功。'
+    : '插件操作失败。'
+  const normalized = new Error(detail ? `${prefix}\n${detail}` : prefix)
+  if (error?.code) normalized.code = error.code
+  return normalized
 }
 
 function analyzeBundlePatch({ profileDir, directory, manifest }) {
@@ -445,18 +459,24 @@ class PluginManager {
           stdio: ['ignore', 'pipe', 'pipe'],
         })
         let output = ''
-        const record = (chunk, level) => {
-          const text = chunk.toString().replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '').trim()
-          if (!text) return
-          output += `${text}\n`
-          this.onLog({ level, message: text, timestamp: new Date().toISOString() })
+        const stdoutDecoder = new StringDecoder('utf8')
+        const stderrDecoder = new StringDecoder('utf8')
+        const record = (text, level) => {
+          const clean = String(text || '').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')
+          if (!clean) return
+          output += clean
+          const message = clean.trim()
+          if (message) this.onLog({ level, message, timestamp: new Date().toISOString() })
         }
-        child.stdout.on('data', (chunk) => record(chunk, 'info'))
-        child.stderr.on('data', (chunk) => record(chunk, 'warn'))
+        child.stdout.on('data', (chunk) => record(stdoutDecoder.write(chunk), 'info'))
+        child.stderr.on('data', (chunk) => record(stderrDecoder.write(chunk), 'warn'))
         child.on('error', reject)
-        child.on('exit', (code) => {
-          if (code === 0) resolve(output.trim())
-          else reject(new Error(output.trim() || `插件命令退出，代码 ${code}`))
+        child.on('close', (code) => {
+          record(stdoutDecoder.end(), 'info')
+          record(stderrDecoder.end(), 'warn')
+          const detail = output.trim()
+          if (code === 0) resolve(detail)
+          else reject(new Error(detail || `插件命令退出，代码 ${code}`))
         })
       })
     }
@@ -464,10 +484,14 @@ class PluginManager {
       try {
         return await execute(args)
       } catch (error) {
-        if (!isPluginNetworkFailure(error) || args.some((argument) => /^--registry(?:=|$)/.test(argument))) throw error
+        if (!isPluginNetworkFailure(error) || args.some((argument) => /^--registry(?:=|$)/.test(argument))) throw normalizePluginError(error)
         const fallbackArgs = [...args, `--registry=${DOMESTIC_NPM_REGISTRY}`]
         this.onLog({ level: 'warn', message: `npm 官方源连接失败，正在切换国内镜像重试：${DOMESTIC_NPM_REGISTRY}`, timestamp: new Date().toISOString() })
-        return await execute(fallbackArgs)
+        try {
+          return await execute(fallbackArgs)
+        } catch (fallbackError) {
+          throw normalizePluginError(fallbackError, { mirrorRetried: true })
+        }
       }
     } finally {
       this.operation = null
@@ -727,6 +751,7 @@ module.exports = {
   hasDshBundle,
   inferSourceKind,
   isPluginNetworkFailure,
+  normalizePluginError,
   normalizePackageName,
   normalizePluginSource,
   packageDirectory,

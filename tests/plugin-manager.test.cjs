@@ -11,6 +11,7 @@ const {
   inferSourceKind,
   isPluginNetworkFailure,
   normalizePackageName,
+  normalizePluginError,
   normalizePluginSource,
   requestedPackageName,
 } = require('../electron/lib/plugin-manager.cjs')
@@ -112,6 +113,37 @@ test('network failures retry plugin commands through the domestic npm mirror', a
   assert.deepEqual(commands[0], ['install', '--reporter=append-only'])
   assert.deepEqual(commands[1], ['install', '--reporter=append-only', `--registry=${DOMESTIC_NPM_REGISTRY}`])
   fs.rmSync(temporary, { recursive: true, force: true })
+})
+
+test('generic DSH pnpm failures also retry through the domestic npm mirror', async () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-studio-generic-pnpm-fallback-test-'))
+  const profile = path.join(temporary, 'profiles', 'web')
+  fs.mkdirSync(profile, { recursive: true })
+  fs.writeFileSync(path.join(profile, 'package.json'), JSON.stringify({
+    dependencies: {},
+    dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+  }))
+  const commands = []
+  const manager = new PluginManager({
+    cliPath: 'unused', nodePath: 'unused', dshHome: temporary,
+    commandRunner: async (args) => {
+      commands.push(args)
+      if (commands.length === 1) throw new Error(`dsh: pnpm failed in profile directory ${profile}`)
+      return 'recovered through mirror'
+    },
+  })
+  const result = await manager.repair()
+  assert.equal(result.output, 'recovered through mirror')
+  assert.equal(isPluginNetworkFailure(new Error('dsh: pnpm failed in profile directory C:\\Users\\demo\\.dsh\\profiles\\web')), true)
+  assert.deepEqual(commands[1], ['install', '--reporter=append-only', `--registry=${DOMESTIC_NPM_REGISTRY}`])
+  fs.rmSync(temporary, { recursive: true, force: true })
+})
+
+test('plugin errors remove replacement characters and explain a failed mirror retry', () => {
+  const error = normalizePluginError(new Error('et\uFFFD\uFFFD\uFFFD dsh: pnpm failed'), { mirrorRetried: true })
+  assert.doesNotMatch(error.message, /\uFFFD/)
+  assert.match(error.message, /npm 官方源和国内镜像均未成功/)
+  assert.match(error.message, /dsh: pnpm failed/)
 })
 
 test('plugin inventory separates core and community bundles', () => {
