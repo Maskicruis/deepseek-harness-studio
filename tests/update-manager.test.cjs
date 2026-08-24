@@ -35,7 +35,7 @@ test('release asset selection and checksum parsing use the published installer n
   assert.equal(checksums.get(expected.name), 'ABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD')
 })
 
-test('download candidates prefer a mirror and always retain GitHub fallback', () => {
+test('download route modes are exclusive except for ordered automatic fallback', () => {
   const asset = 'https://github.com/example/studio/releases/download/v1.4.1/setup.exe'
   const automatic = buildDownloadCandidates(asset, { mode: 'auto' })
   assert.equal(automatic[0].kind, 'mirror')
@@ -45,9 +45,13 @@ test('download candidates prefer a mirror and always retain GitHub fallback', ()
   const official = buildDownloadCandidates(asset, { mode: 'github' })
   assert.deepEqual(official, [{ label: 'GitHub 官方线路', url: asset, kind: 'github' }])
 
+  const mirror = buildDownloadCandidates(asset, { mode: 'mirror' })
+  assert.equal(mirror.length, 1)
+  assert.equal(mirror[0].kind, 'mirror')
+
   const custom = buildDownloadCandidates(asset, { mode: 'custom', customMirror: 'https://mirror.example.com/gh/' })
+  assert.equal(custom.length, 1)
   assert.equal(custom[0].url, `https://mirror.example.com/gh/${asset}`)
-  assert.equal(custom[1].kind, 'github')
   assert.equal(normalizeMirrorBase('http://unsafe.example.com'), '')
 })
 
@@ -85,5 +89,48 @@ test('update download falls back to GitHub after a mirror failure and verifies S
   assert.equal(status.phase, 'downloaded')
   assert.equal(status.downloadSource, 'GitHub 官方线路')
   assert.equal(fs.readFileSync(status.downloadedPath, 'utf8'), payload.toString())
+  fs.rmSync(temporary, { recursive: true, force: true })
+})
+
+test('repeated download requests share one task and never write the same part file concurrently', async () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-update-lock-test-'))
+  const payload = Buffer.from('single updater task')
+  const digest = createHash('sha256').update(payload).digest('hex').toUpperCase()
+  let calls = 0
+  let releaseDownload
+  const gate = new Promise((resolve) => { releaseDownload = resolve })
+  const manager = new UpdateManager({
+    currentVersion: '1.4.0',
+    getRepository: () => 'example/studio',
+    getDownloadOptions: () => ({ mode: 'github' }),
+    updateDir: temporary,
+    download: async (_url, filePath, onProgress) => {
+      calls += 1
+      await gate
+      fs.writeFileSync(filePath, payload)
+      onProgress?.({ percent: 100, received: payload.length, total: payload.length })
+      return { received: payload.length, sha256: digest }
+    },
+  })
+  manager.release = {
+    asset: {
+      name: 'DeepSeek-Harness-Studio-Setup-1.4.1-x64.exe',
+      browser_download_url: 'https://github.com/example/studio/releases/download/v1.4.1/DeepSeek-Harness-Studio-Setup-1.4.1-x64.exe',
+    },
+    expectedHash: digest,
+    latestVersion: '1.4.1',
+  }
+  manager.status.phase = 'available'
+  const first = manager.download()
+  const second = manager.download()
+  assert.equal(first, second)
+  await Promise.resolve()
+  assert.equal(calls, 1)
+  assert.throws(() => manager.install(), /仍在下载中/)
+  releaseDownload()
+  const [firstStatus, secondStatus] = await Promise.all([first, second])
+  assert.equal(firstStatus.phase, 'downloaded')
+  assert.deepEqual(secondStatus, firstStatus)
+  assert.equal(calls, 1)
   fs.rmSync(temporary, { recursive: true, force: true })
 })

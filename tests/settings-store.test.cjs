@@ -28,6 +28,8 @@ test('settings store persists sanitized values', () => {
   store.set({ updateDownloadMode: 'custom', updateMirrorUrl: 'https://mirror.example.com/ghproxy/' })
   assert.equal(store.get().updateDownloadMode, 'custom')
   assert.equal(store.get().updateMirrorUrl, 'https://mirror.example.com/ghproxy')
+  store.set({ updateDownloadMode: 'mirror' })
+  assert.equal(store.get().updateDownloadMode, 'mirror')
   store.set({ updateDownloadMode: 'invalid', updateMirrorUrl: 'http://mirror.example.com/' })
   assert.equal(store.get().updateDownloadMode, 'auto')
   assert.equal(store.get().updateMirrorUrl, '')

@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   updateMirrorUrl: '',
 })
 
-const UPDATE_DOWNLOAD_MODES = new Set(['auto', 'github', 'custom'])
+const UPDATE_DOWNLOAD_MODES = new Set(['auto', 'mirror', 'github', 'custom'])
 
 function sanitizeMirrorUrl(value) {
   const source = typeof value === 'string' ? value.replace(/[\r\n\0]/g, '').trim().slice(0, 2048) : ''

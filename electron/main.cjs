@@ -174,10 +174,15 @@ function registerUpdateIpc() {
   ipcMain.handle('updates:status', () => updates.getStatus())
   ipcMain.handle('updates:check', () => updates.check())
   ipcMain.handle('updates:download', () => updates.download())
-  ipcMain.handle('updates:install', () => {
+  ipcMain.handle('updates:install', async () => {
+    try {
+      await runtime?.stop()
+    } catch (error) {
+      console.warn('Harness stop before update failed:', error)
+    }
     const result = updates.install()
-    // 安装程序（向导）由用户手动完成；稍后退出以释放文件锁
-    setTimeout(() => app.quit(), 500)
+    // 先停止 Harness，再退出 Studio，确保安装向导可以覆盖自定义目录中的旧文件。
+    setTimeout(() => app.quit(), 250)
     return result
   })
 }

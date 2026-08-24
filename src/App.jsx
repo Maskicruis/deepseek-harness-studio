@@ -911,19 +911,20 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
               onChange={(event) => setSettings((current) => ({ ...current, updateRepository: event.target.value }))}
             />
           </SettingRow>
-          <SettingRow icon={Download} title="更新下载线路" description="自动模式优先国内社区镜像，失败后回退 GitHub；安装前始终校验 SHA-256">
+          <SettingRow icon={Download} title="更新下载线路" description="一次只运行一个下载任务；自动模式会等镜像完全失败后再顺序尝试 GitHub">
             <select
               className="route-select"
               value={settings.updateDownloadMode || 'auto'}
               onChange={(event) => setSettings((current) => ({ ...current, updateDownloadMode: event.target.value }))}
             >
-              <option value="auto">自动（国内优先）</option>
-              <option value="github">仅 GitHub</option>
-              <option value="custom">自定义镜像</option>
+              <option value="auto">自动（镜像失败后再试 GitHub）</option>
+              <option value="mirror">仅国内镜像</option>
+              <option value="github">仅 GitHub 官方</option>
+              <option value="custom">仅自定义镜像</option>
             </select>
           </SettingRow>
           {settings.updateDownloadMode === 'custom' ? (
-            <SettingRow icon={Globe2} title="自定义镜像前缀" description="兼容 gh-proxy 的完整 URL 转发格式；失败时仍会回退 GitHub">
+            <SettingRow icon={Globe2} title="自定义镜像前缀" description="兼容 gh-proxy 的完整 URL 转发格式；该模式不会同时连接 GitHub 官方线路">
               <input
                 className="repo-input"
                 type="url"

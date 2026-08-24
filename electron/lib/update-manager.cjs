@@ -48,7 +48,7 @@ function getProxyAgent() {
   if (!proxy) return null
   if (cachedAgent && cachedAgent.__proxy === proxy) return cachedAgent
   try {
-    const agent = new HttpsProxyAgent(proxy, { keepAlive: true })
+    const agent = new HttpsProxyAgent(proxy, { keepAlive: false })
     agent.__proxy = proxy
     cachedAgent = agent
     return agent
@@ -130,11 +130,16 @@ function buildDownloadCandidates(assetUrl, { mode = 'auto', customMirror = '' } 
     if (base) add(label, `${base}/${officialUrl}`, kind)
   }
 
-  if (mode === 'custom') addMirror('自定义镜像', customMirror, 'custom')
-  else if (mode !== 'github') {
+  if (mode === 'custom') {
+    addMirror('自定义镜像', customMirror, 'custom')
+  } else if (mode === 'mirror') {
     for (const mirror of BUILT_IN_UPDATE_MIRRORS) addMirror(mirror.label, mirror.baseUrl, 'mirror')
+  } else if (mode === 'github') {
+    add('GitHub 官方线路', officialUrl, 'github')
+  } else {
+    for (const mirror of BUILT_IN_UPDATE_MIRRORS) addMirror(mirror.label, mirror.baseUrl, 'mirror')
+    add('GitHub 官方线路', officialUrl, 'github')
   }
-  add('GitHub 官方线路', officialUrl, 'github')
   return candidates
 }
 
@@ -188,34 +193,57 @@ async function requestJson(url) {
 function downloadFile(url, filePath, onProgress, redirects = MAX_REDIRECTS) {
   const parsed = assertHttps(url)
   return new Promise((resolve, reject) => {
+    let settled = false
+    let activeResponse = null
+    let output = null
+    const succeed = (result) => {
+      if (settled) return
+      settled = true
+      resolve(result)
+    }
+    const fail = (error) => {
+      if (settled) return
+      settled = true
+      if (activeResponse && !activeResponse.destroyed) activeResponse.destroy()
+      if (output && !output.destroyed) {
+        output.once('close', () => reject(error))
+        output.destroy()
+        return
+      }
+      reject(error)
+    }
     const agent = getProxyAgent()
     const request = https.get(parsed, { headers: { 'user-agent': 'DeepSeek-Harness-Studio-Updater' }, agent: agent || undefined }, (response) => {
+      activeResponse = response
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location) {
         response.resume()
-        if (redirects <= 0) return reject(new Error('安装包重定向次数过多。'))
-        return downloadFile(new URL(response.headers.location, parsed).toString(), filePath, onProgress, redirects - 1).then(resolve, reject)
+        if (redirects <= 0) return fail(new Error('安装包重定向次数过多。'))
+        settled = true
+        downloadFile(new URL(response.headers.location, parsed).toString(), filePath, onProgress, redirects - 1).then(resolve, reject)
+        return
       }
       if (response.statusCode !== 200) {
         response.resume()
-        reject(new Error(`安装包下载返回 HTTP ${response.statusCode}`))
+        fail(new Error(`安装包下载返回 HTTP ${response.statusCode}`))
         return
       }
       const total = Number(response.headers['content-length']) || 0
       let received = 0
       const hash = createHash('sha256')
-      const output = fs.createWriteStream(filePath, { flags: 'wx' })
+      output = fs.createWriteStream(filePath, { flags: 'wx' })
       response.on('data', (chunk) => {
         received += chunk.length
         hash.update(chunk)
         onProgress?.({ received, total, percent: total ? Math.min(100, Math.round((received / total) * 1000) / 10) : 0 })
       })
-      response.on('error', reject)
-      output.on('error', reject)
-      output.on('finish', () => resolve({ received, sha256: hash.digest('hex').toUpperCase() }))
+      response.on('aborted', () => fail(new Error('安装包下载连接被中断。')))
+      response.on('error', fail)
+      output.on('error', fail)
+      output.on('finish', () => succeed({ received, sha256: hash.digest('hex').toUpperCase() }))
       response.pipe(output)
     })
     request.setTimeout(180000, () => request.destroy(new Error('安装包下载超时。')))
-    request.on('error', reject)
+    request.on('error', fail)
   })
 }
 
@@ -227,6 +255,8 @@ class UpdateManager extends EventEmitter {
     this.getDownloadOptions = getDownloadOptions
     this.updateDir = updateDir
     this.downloadFile = download
+    this.downloadPromise = null
+    this.installerLaunched = false
     this.release = null
     this.status = {
       phase: 'idle',
@@ -255,6 +285,7 @@ class UpdateManager extends EventEmitter {
   }
 
   async check() {
+    if (this.downloadPromise) return this.getStatus()
     const parsed = parseGitHubRepository(this.getRepository())
     if (!parsed) return this.#set({ phase: 'unconfigured', message: '请先设置 GitHub 更新仓库（owner/repo）。', repository: '' })
     this.#set({ phase: 'checking', message: '正在检查 GitHub Releases…', repository: parsed.slug, progress: 0, downloadedPath: '', downloadSource: '', downloadAttempts: [] })
@@ -292,7 +323,14 @@ class UpdateManager extends EventEmitter {
     }
   }
 
-  async download() {
+  download() {
+    if (this.downloadPromise) return this.downloadPromise
+    this.downloadPromise = this.#downloadOnce()
+    this.downloadPromise.finally(() => { this.downloadPromise = null }).catch(() => {})
+    return this.downloadPromise
+  }
+
+  async #downloadOnce() {
     if (!this.release) await this.check()
     if (!this.release || this.status.phase !== 'available') return this.getStatus()
     if (!this.release.expectedHash) return this.#set({ phase: 'error', message: '为安全起见，缺少 SHA-256 校验值时不会下载安装包。' })
@@ -305,6 +343,7 @@ class UpdateManager extends EventEmitter {
     }
     const options = this.getDownloadOptions?.() || {}
     const candidates = buildDownloadCandidates(this.release.asset.browser_download_url, options)
+    if (!candidates.length) return this.#set({ phase: 'error', message: '所选更新下载线路无效，请检查设置。', downloadSource: '', downloadAttempts: [] })
     const attempts = []
     for (const candidate of candidates) {
       if (fs.existsSync(partialPath)) fs.unlinkSync(partialPath)
@@ -351,12 +390,15 @@ class UpdateManager extends EventEmitter {
   }
 
   install() {
+    if (this.downloadPromise) throw new Error('更新仍在下载中，请等待当前单线路任务完成。')
     const installer = this.status.downloadedPath
     if (!installer || !fs.existsSync(installer)) throw new Error('尚未下载可安装的更新。')
+    if (this.installerLaunched) return { launched: false, alreadyLaunched: true, path: installer }
     // 手动安装：启动 NSIS 安装程序并显示安装向导，由用户按向导完成覆盖安装；
     // 完成后由 runAfterFinish 自动重启应用。
     const child = spawn(installer, [], { detached: true, stdio: 'ignore', windowsHide: false })
     child.unref()
+    this.installerLaunched = true
     return { launched: true, path: installer }
   }
 }

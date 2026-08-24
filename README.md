@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.7-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.7/DeepSeek-Harness-Studio-Setup-1.07.7-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.8-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.8/DeepSeek-Harness-Studio-Setup-1.07.8-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.7-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.7/DeepSeek-Harness-Studio-Setup-1.07.7-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.7-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.7/DeepSeek-Harness-Studio-Portable-1.07.7-x64.exe)（免安装，直接运行）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.8-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.8/DeepSeek-Harness-Studio-Setup-1.07.8-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.8-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.8/DeepSeek-Harness-Studio-Portable-1.07.8-x64.exe)（免安装，直接运行）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -38,6 +38,8 @@
 
 **无需全局 pnpm：** v1.07.7 修复 Windows `Path`/`PATH` 重复键导致 DSH 忽略 Studio 内置 pnpm 的问题；两次 DSH 转发均失败时还会直接调用安装包内置 pnpm，不要求目标电脑预装 Node.js 或 pnpm。
 
+**更新线路互斥：** v1.07.8 起，同一时间只运行一个安装包下载任务；自动模式严格按“国内镜像失败 → GitHub 官方”顺序回退，也可选择仅国内镜像、仅 GitHub 或仅自定义镜像。启动安装前会停止 Harness 并释放安装目录。
+
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
 ## 已实现
@@ -55,7 +57,7 @@
 - 零配置新会话：首次启动自动创建并注册 `%USERPROFILE%\Documents\DeepSeek Harness\Workspace`。
 - 智能路径识别：聊天中出现 `E:\project`、`C:/work/app`、UNC 路径或具体文件时，自动识别并注册已有目录；显式路径优先于默认工作区。
 - 安装版与免安装版 Windows 可执行文件。
-- 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），支持国内社区镜像优先、GitHub 自动回退和自定义 gh-proxy 前缀，安装包始终强制验证 SHA-256；更新采用「下载安装包 + 安装向导」方式，可自定义安装目录。
+- 应用内更新：启动后可自动检测 GitHub Releases；下载自动走系统代理（环境变量优先，其次 Windows 系统代理），同一时间仅运行一个下载任务，支持严格顺序的国内镜像 → GitHub 自动回退，以及仅镜像、仅 GitHub、仅自定义线路，安装包始终强制验证 SHA-256；更新采用「下载安装包 + 安装向导」方式，可自定义安装目录。
 - DeepSeek 官方 Harness 随附的鲸鱼图标，用于窗口和可执行文件。
 
 ## 开发运行
@@ -82,8 +84,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.7-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
-- `DeepSeek-Harness-Studio-Portable-1.07.7-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.07.8-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.07.8-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -96,6 +98,7 @@ npm run dist
 
 ## 版本说明
 
+- v1.07.8 —— 修复更新线路并发、临时文件竞争和安装目录占用，见 [docs/RELEASE_NOTES_1.07.8_CN.md](docs/RELEASE_NOTES_1.07.8_CN.md)。
 - v1.07.7 —— 修复无全局 pnpm 电脑的插件安装，并更换 DeepSeek 背景 + Harness Studio 多尺寸 Windows 图标，见 [docs/RELEASE_NOTES_1.07.7_CN.md](docs/RELEASE_NOTES_1.07.7_CN.md)。
 - v1.07.6 —— 修复 DSH 通用 pnpm 错误未触发国内镜像回退及错误文本乱码，见 [docs/RELEASE_NOTES_1.07.6_CN.md](docs/RELEASE_NOTES_1.07.6_CN.md)。
 - v1.07.5 —— 修复部分设备的插件源网络失败，验证自定义安装目录与迁移路径，见 [docs/RELEASE_NOTES_1.07.5_CN.md](docs/RELEASE_NOTES_1.07.5_CN.md)。
