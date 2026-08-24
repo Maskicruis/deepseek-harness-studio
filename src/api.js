@@ -36,7 +36,7 @@ function createBrowserMock() {
     closeToTray: false,
     autoCheckUpdates: true,
     updateRepository: 'deepseek-harness-studio/deepseek-harness-studio',
-    updateDownloadMode: 'auto',
+    updateDownloadMode: 'mirror',
     updateMirrorUrl: '',
   }
   let updateStatus = {

@@ -116,7 +116,7 @@ function normalizeMirrorBase(value) {
   }
 }
 
-function buildDownloadCandidates(assetUrl, { mode = 'auto', customMirror = '' } = {}) {
+function buildDownloadCandidates(assetUrl, { mode = 'mirror', customMirror = '' } = {}) {
   const officialUrl = assertHttps(assetUrl).toString()
   const candidates = []
   const seen = new Set()

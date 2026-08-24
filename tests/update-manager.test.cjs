@@ -37,6 +37,10 @@ test('release asset selection and checksum parsing use the published installer n
 
 test('download route modes are exclusive except for ordered automatic fallback', () => {
   const asset = 'https://github.com/example/studio/releases/download/v1.4.1/setup.exe'
+  const defaultRoute = buildDownloadCandidates(asset)
+  assert.equal(defaultRoute.length, 1)
+  assert.equal(defaultRoute[0].kind, 'mirror')
+
   const automatic = buildDownloadCandidates(asset, { mode: 'auto' })
   assert.equal(automatic[0].kind, 'mirror')
   assert.equal(automatic.at(-1).url, asset)

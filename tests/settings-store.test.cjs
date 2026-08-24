@@ -17,7 +17,7 @@ test('settings store persists sanitized values', () => {
     closeToTray: false,
     autoCheckUpdates: true,
     updateRepository: '',
-    updateDownloadMode: 'auto',
+    updateDownloadMode: 'mirror',
     updateMirrorUrl: '',
   })
   store.set({ port: 80 })
@@ -31,7 +31,7 @@ test('settings store persists sanitized values', () => {
   store.set({ updateDownloadMode: 'mirror' })
   assert.equal(store.get().updateDownloadMode, 'mirror')
   store.set({ updateDownloadMode: 'invalid', updateMirrorUrl: 'http://mirror.example.com/' })
-  assert.equal(store.get().updateDownloadMode, 'auto')
+  assert.equal(store.get().updateDownloadMode, 'mirror')
   assert.equal(store.get().updateMirrorUrl, '')
   fs.rmSync(temporary, { recursive: true, force: true })
 })

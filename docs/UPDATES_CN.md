@@ -32,8 +32,8 @@ npm run dist
 
 “偏好设置 → 软件更新 → 更新下载线路”提供四种模式：
 
+- **仅国内镜像（默认）**：只请求内置社区镜像，不连接 GitHub 安装包线路。
 - **自动（镜像失败后再试 GitHub）**：先尝试内置社区镜像；该请求完全结束且失败或 SHA-256 不一致后，才顺序尝试 GitHub 官方线路。
-- **仅国内镜像**：只请求内置社区镜像，不连接 GitHub 安装包线路。
 - **仅 GitHub 官方**：不经过镜像，直接下载官方 Release asset。
 - **仅自定义镜像**：填写自建或团队镜像的 HTTPS 前缀，按 `<镜像前缀>/<完整 GitHub URL>` 请求；失败时不会连接其他下载线路。
 
@@ -51,7 +51,7 @@ npm run dist
 正式 Release 可使用仓库内置发布脚本创建并上传已复核的本地产物。脚本通过 Git Credential Manager 使用当前 GitHub 登录凭据，不会把 Token 写入项目文件：
 
 ```powershell
-npm run release:publish -- 1.07.8
+npm run release:publish -- 1.07.9
 ```
 
 发布新版本时，先同步修改版本号、README、CHANGELOG 与版本说明并提交源码，推送 `main` 和 `v<version>` 标签；随后运行内置发布脚本。脚本会更新 Release 标题和正文，并上传安装包、便携版、blockmap 与 `SHA256SUMS.txt`。

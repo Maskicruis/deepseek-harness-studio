@@ -911,14 +911,14 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
               onChange={(event) => setSettings((current) => ({ ...current, updateRepository: event.target.value }))}
             />
           </SettingRow>
-          <SettingRow icon={Download} title="更新下载线路" description="一次只运行一个下载任务；自动模式会等镜像完全失败后再顺序尝试 GitHub">
+          <SettingRow icon={Download} title="更新下载线路" description="默认仅使用国内镜像；GitHub、自动回退或自定义线路需手动选择">
             <select
               className="route-select"
-              value={settings.updateDownloadMode || 'auto'}
+              value={settings.updateDownloadMode || 'mirror'}
               onChange={(event) => setSettings((current) => ({ ...current, updateDownloadMode: event.target.value }))}
             >
-              <option value="auto">自动（镜像失败后再试 GitHub）</option>
               <option value="mirror">仅国内镜像</option>
+              <option value="auto">自动（镜像失败后再试 GitHub）</option>
               <option value="github">仅 GitHub 官方</option>
               <option value="custom">仅自定义镜像</option>
             </select>
@@ -965,7 +965,7 @@ export default function App() {
   const [panel, setPanel] = useState(null)
   const [inventory, setInventory] = useState({ core: [], community: [], count: 0, profileDir: '', summary: { total: 0, ready: 0, disabled: 0, issues: 0, blocking: 0 } })
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
-  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'auto', updateMirrorUrl: '' })
+  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'mirror', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
   const [appInfo, setAppInfo] = useState({ version: '1.07.3', harnessVersion: '0.1.0-rc.7' })
   const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.07.3', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })

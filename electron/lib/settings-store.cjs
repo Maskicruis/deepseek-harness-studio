@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   closeToTray: false,
   autoCheckUpdates: true,
   updateRepository: '',
-  updateDownloadMode: 'auto',
+  updateDownloadMode: 'mirror',
   updateMirrorUrl: '',
 })
 
