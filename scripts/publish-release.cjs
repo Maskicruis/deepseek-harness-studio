@@ -173,6 +173,18 @@ function releaseNotes() {
 
 ## 📋 v${DISPLAY_VERSION} 更新内容
 
+### 🛠️ 无需预装全局 pnpm
+- 修复 Windows `Path` / `PATH` 重复键导致 DSH 忽略 Studio 内置 pnpm 的问题
+- 插件子进程现在使用唯一规范的 Windows `Path`，内置 Node 与 pnpm 始终排在最前
+- DSH 官方源与国内镜像均失败后，会直接调用安装包内置 pnpm 并自动对账 bundle
+- 已在完全没有全局 pnpm 的隔离 PATH 中完成现有 5 个社区组件真实安装
+
+### 🎨 DeepSeek Harness Studio 新图标
+- DeepSeek 蓝色渐变与鲸鱼作为背景主体，加入完整 `HARNESS STUDIO` 标识
+- 16–64 px 使用专门的鲸鱼 + `HS` 构图，适配任务栏与资源管理器
+- 清除弧形高光、水平分隔线和硬边色带，背景更干净
+- 应用、安装向导、卸载程序与快捷方式使用统一的七尺寸 Windows ICO
+
 ### 🧩 通用 pnpm 失败恢复
 - DSH 只返回通用 pnpm 错误时，也会自动切换国内镜像重试
 - 不再要求错误文本必须保留底层网络错误代码

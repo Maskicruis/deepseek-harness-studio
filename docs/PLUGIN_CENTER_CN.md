@@ -67,7 +67,7 @@ GitHub:  github:owner/repository 或 https://github.com/owner/repository
 
 npm 和 GitHub 来源无法在下载前读取清单，因此“验证来源”只检查输入格式；安装完成后会立即执行相同的 DSH bundle 健康检查。若下载到的是普通依赖，插件中心会标记为“不兼容”，不会提供启用开关。
 
-插件安装不会使用开发机固定路径。Node、DSH CLI、pnpm shim 和 profile 都从当前安装目录与当前 Windows 用户目录动态解析；若应用移动或覆盖安装，pnpm shim 会自动重写。v1.07.5 起，npm 官方源出现连接重置、超时、DNS 或网络不可达错误时，会自动切换 `https://registry.npmmirror.com` 重试；v1.07.6 起，即使 DSH 只返回 `pnpm failed in profile directory` 而没有保留底层网络代码，也会执行同一回退。活动日志会显示本次操作实际使用的 Node 和 profile 路径。
+插件安装不会使用开发机固定路径。Node、DSH CLI、pnpm shim 和 profile 都从当前安装目录与当前 Windows 用户目录动态解析；若应用移动或覆盖安装，pnpm shim 会自动重写。v1.07.5 起，npm 官方源出现连接重置、超时、DNS 或网络不可达错误时，会自动切换 `https://registry.npmmirror.com` 重试；v1.07.6 起，即使 DSH 只返回 `pnpm failed in profile directory` 而没有保留底层网络代码，也会执行同一回退；v1.07.7 起，Windows 子进程使用唯一规范的 `Path` 键确保内置 pnpm 可见，并在两次 DSH 转发均失败后直接调用内置 pnpm。活动日志会显示本次操作实际使用的 Node 和 profile 路径。
 
 ## 活动与故障恢复
 

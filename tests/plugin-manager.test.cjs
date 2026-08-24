@@ -7,6 +7,7 @@ const {
   CORE_BUNDLES,
   DOMESTIC_NPM_REGISTRY,
   PluginManager,
+  buildPluginEnvironment,
   createPnpmShim,
   inferSourceKind,
   isPluginNetworkFailure,
@@ -82,6 +83,25 @@ test('createPnpmShim rewrites an absolute launcher after the app installation mo
   fs.rmSync(temporary, { recursive: true, force: true })
 })
 
+test('plugin environment keeps one canonical Windows Path and prepends bundled tools', () => {
+  const nodePath = path.join('C:', 'Studio', 'runtime', 'node.exe')
+  const environment = buildPluginEnvironment({
+    baseEnv: { Path: 'C:\\Windows\\System32', PATH: 'C:\\stale-path', TEMP: 'C:\\Temp' },
+    nodePath,
+    shimDir: 'C:\\Users\\demo\\.dsh\\.studio-bin',
+    bundledBin: 'C:\\Studio\\resources\\app\\node_modules\\.bin',
+    dshHome: 'C:\\Users\\demo\\.dsh',
+    platform: 'win32',
+  })
+  const pathKeys = Object.keys(environment).filter((key) => key.toLowerCase() === 'path')
+  assert.deepEqual(pathKeys, ['Path'])
+  assert.equal(environment.Path.split(path.delimiter)[0], path.dirname(nodePath))
+  assert.match(environment.Path, /\.studio-bin/)
+  assert.match(environment.Path, /node_modules\\\.bin/)
+  assert.doesNotMatch(environment.Path, /stale-path/)
+  assert.equal(environment.DSH_HOME, 'C:\\Users\\demo\\.dsh')
+})
+
 test('inferSourceKind identifies npm, GitHub, and local sources', () => {
   assert.equal(inferSourceKind('@scope/plugin'), 'npm')
   assert.equal(inferSourceKind('github:owner/repo'), 'github')
@@ -139,11 +159,60 @@ test('generic DSH pnpm failures also retry through the domestic npm mirror', asy
   fs.rmSync(temporary, { recursive: true, force: true })
 })
 
+test('bundled pnpm bypass recovers when both DSH forwarding attempts fail', async () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-studio-direct-pnpm-test-'))
+  const dshHome = path.join(temporary, '.dsh')
+  const profile = path.join(dshHome, 'profiles', 'web')
+  const nodeModules = path.join(temporary, 'app', 'node_modules')
+  const cliPath = path.join(nodeModules, '@deepseek-ai', 'dsh', 'lib', 'bin.js')
+  const pnpmEntry = path.join(nodeModules, 'pnpm', 'bin', 'pnpm.cjs')
+  const nodePath = path.join(temporary, 'runtime', 'node.exe')
+  fs.mkdirSync(profile, { recursive: true })
+  fs.mkdirSync(path.dirname(cliPath), { recursive: true })
+  fs.mkdirSync(path.dirname(pnpmEntry), { recursive: true })
+  fs.mkdirSync(path.dirname(nodePath), { recursive: true })
+  fs.writeFileSync(cliPath, '')
+  fs.writeFileSync(pnpmEntry, '')
+  fs.writeFileSync(nodePath, '')
+  fs.writeFileSync(path.join(profile, 'package.json'), JSON.stringify({
+    dependencies: {},
+    dsh: { profile: { bundles: ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] } },
+  }))
+  const dshCommands = []
+  const pnpmCommands = []
+  const manager = new PluginManager({
+    cliPath, nodePath, dshHome,
+    commandRunner: async (args) => {
+      dshCommands.push(args)
+      throw new Error(`dsh: pnpm failed in profile directory ${profile}`)
+    },
+    pnpmRunner: async (args) => {
+      pnpmCommands.push(args)
+      const manifestPath = path.join(profile, 'package.json')
+      const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+      manifest.dependencies['@demo/weather'] = '1.0.0'
+      fs.writeFileSync(manifestPath, JSON.stringify(manifest))
+      writePackage(profile, '@demo/weather', { dsh: { bundle: { patch: './cordis.patch.yml' } } })
+      return 'installed by bundled pnpm'
+    },
+  })
+  const result = await manager.install('@demo/weather@1.0.0')
+  assert.equal(dshCommands.length, 2)
+  assert.equal(pnpmCommands.length, 1)
+  assert.deepEqual(pnpmCommands[0], ['add', '@demo/weather@1.0.0', '--reporter=append-only', `--registry=${DOMESTIC_NPM_REGISTRY}`])
+  assert.deepEqual(result.installed, ['@demo/weather'])
+  assert.equal(result.inventory.community[0].health, 'ready')
+  assert.equal(JSON.parse(fs.readFileSync(path.join(profile, 'package.json'), 'utf8')).dsh.profile.bundles.includes('@demo/weather'), true)
+  fs.rmSync(temporary, { recursive: true, force: true })
+})
+
 test('plugin errors remove replacement characters and explain a failed mirror retry', () => {
   const error = normalizePluginError(new Error('et\uFFFD\uFFFD\uFFFD dsh: pnpm failed'), { mirrorRetried: true })
   assert.doesNotMatch(error.message, /\uFFFD/)
   assert.match(error.message, /npm 官方源和国内镜像均未成功/)
   assert.match(error.message, /dsh: pnpm failed/)
+  const directError = normalizePluginError(new Error('direct pnpm failed'), { mirrorRetried: true, directRetried: true })
+  assert.match(directError.message, /内置 pnpm 直连均未成功/)
 })
 
 test('plugin inventory separates core and community bundles', () => {

@@ -104,17 +104,32 @@ function isPluginNetworkFailure(error) {
   return /ECONNRESET|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|ENETUNREACH|ERR_SOCKET_TIMEOUT|ERR_PNPM_(?:META_)?FETCH_FAIL|network socket disconnected|fetch failed|request timed out|pnpm failed in profile directory/i.test(message)
 }
 
-function normalizePluginError(error, { mirrorRetried = false } = {}) {
+function normalizePluginError(error, { mirrorRetried = false, directRetried = false } = {}) {
   const detail = String(error?.message || error || '')
     .replace(/\uFFFD+/g, '')
     .replace(/[ \t]+\r?\n/g, '\n')
     .trim()
-  const prefix = mirrorRetried
-    ? '插件操作失败：npm 官方源和国内镜像均未成功。'
-    : '插件操作失败。'
+  const prefix = directRetried
+    ? '插件操作失败：DSH 官方源、DSH 国内镜像和内置 pnpm 直连均未成功。'
+    : mirrorRetried
+      ? '插件操作失败：npm 官方源和国内镜像均未成功。'
+      : '插件操作失败。'
   const normalized = new Error(detail ? `${prefix}\n${detail}` : prefix)
   if (error?.code) normalized.code = error.code
   return normalized
+}
+
+function buildPluginEnvironment({ baseEnv = process.env, nodePath, shimDir, bundledBin, dshHome, platform = process.platform }) {
+  const environment = { ...baseEnv }
+  const pathKeys = Object.keys(environment).filter((key) => key.toLowerCase() === 'path')
+  const inheritedPath = pathKeys.map((key) => environment[key]).find(Boolean) || ''
+  for (const key of pathKeys) delete environment[key]
+  const pathKey = platform === 'win32' ? 'Path' : 'PATH'
+  environment[pathKey] = [path.dirname(nodePath), shimDir, bundledBin, inheritedPath].filter(Boolean).join(path.delimiter)
+  environment.DSH_HOME = dshHome
+  environment.NO_COLOR = '1'
+  environment.FORCE_COLOR = '0'
+  return environment
 }
 
 function analyzeBundlePatch({ profileDir, directory, manifest }) {
@@ -258,12 +273,14 @@ function communityRecord({ profileDir, name, source, enabled, orphan = false, qu
 }
 
 class PluginManager {
-  constructor({ cliPath, nodePath, dshHome = path.join(os.homedir(), '.dsh'), onLog = () => {}, commandRunner = null }) {
+  constructor({ cliPath, nodePath, dshHome = path.join(os.homedir(), '.dsh'), onLog = () => {}, commandRunner = null, pnpmRunner = null, baseEnv = process.env }) {
     this.cliPath = cliPath
     this.nodePath = nodePath
     this.dshHome = dshHome
     this.onLog = onLog
     this.commandRunner = commandRunner
+    this.pnpmRunner = pnpmRunner
+    this.baseEnv = baseEnv
     this.operation = null
   }
 
@@ -432,6 +449,84 @@ class PluginManager {
     }
   }
 
+  #spawnNodeScript(entry, args, environment) {
+    return new Promise((resolve, reject) => {
+      const child = spawn(this.nodePath, [entry, ...args], {
+        cwd: this.profileDir,
+        env: environment,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      let output = ''
+      const stdoutDecoder = new StringDecoder('utf8')
+      const stderrDecoder = new StringDecoder('utf8')
+      const record = (text, level) => {
+        const clean = String(text || '').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')
+        if (!clean) return
+        output += clean
+        const message = clean.trim()
+        if (message) this.onLog({ level, message, timestamp: new Date().toISOString() })
+      }
+      child.stdout.on('data', (chunk) => record(stdoutDecoder.write(chunk), 'info'))
+      child.stderr.on('data', (chunk) => record(stderrDecoder.write(chunk), 'warn'))
+      child.on('error', reject)
+      child.on('close', (code) => {
+        record(stdoutDecoder.end(), 'info')
+        record(stderrDecoder.end(), 'warn')
+        const detail = output.trim()
+        if (code === 0) resolve(detail)
+        else reject(new Error(detail || `插件命令退出，代码 ${code}`))
+      })
+    })
+  }
+
+  #reconcileBundles(before) {
+    const after = readJson(this.manifestPath, {})
+    const beforeDependencies = new Set(Object.keys(before?.dependencies || {}))
+    const dependencies = Object.keys(after?.dependencies || {})
+    const dependencySet = new Set(dependencies)
+    const bundles = Array.isArray(after?.dsh?.profile?.bundles) ? [...after.dsh.profile.bundles] : []
+    let changed = false
+    const exportsBundle = (name) => {
+      const manifest = readJson(path.join(packageDirectory(this.profileDir, name), 'package.json'), {})
+      return hasDshBundle(manifest)
+    }
+    for (const name of dependencies) {
+      if (exportsBundle(name) && !bundles.includes(name)) {
+        bundles.push(name)
+        changed = true
+      }
+    }
+    for (const name of [...bundles]) {
+      const wasDependency = beforeDependencies.has(name) || dependencySet.has(name)
+      const stillBundle = dependencySet.has(name) && exportsBundle(name)
+      if (wasDependency && !stillBundle) {
+        bundles.splice(bundles.indexOf(name), 1)
+        changed = true
+      }
+    }
+    if (!changed) return
+    after.dsh ||= {}
+    after.dsh.profile ||= {}
+    after.dsh.profile.bundles = bundles
+    writeJsonAtomic(this.manifestPath, after)
+  }
+
+  async #runBundledPnpm(args) {
+    if (!this.nodePath || !fs.existsSync(this.nodePath)) throw new Error('找不到 Node.js 运行时。')
+    if (!this.cliPath || !fs.existsSync(this.cliPath)) throw new Error('找不到 DeepSeek Harness CLI。')
+    const before = readJson(this.manifestPath, {})
+    const bundledBin = path.resolve(path.dirname(this.cliPath), '..', '..', '..', '.bin')
+    const { shimDir, pnpmEntry } = createPnpmShim({ cliPath: this.cliPath, nodePath: this.nodePath, dshHome: this.dshHome })
+    const environment = buildPluginEnvironment({ baseEnv: this.baseEnv, nodePath: this.nodePath, shimDir, bundledBin, dshHome: this.dshHome })
+    this.onLog({ level: 'warn', message: `正在绕过 DSH 转发层，直接调用内置 pnpm：${pnpmEntry}`, timestamp: new Date().toISOString() })
+    const output = this.pnpmRunner
+      ? await this.pnpmRunner(args)
+      : await this.#spawnNodeScript(pnpmEntry, args, environment)
+    this.#reconcileBundles(before)
+    return output
+  }
+
   async #run(args) {
     if (this.operation) throw new Error('已有插件操作正在进行，请稍候。')
     this.operation = args.join(' ')
@@ -443,42 +538,10 @@ class PluginManager {
       if (!this.cliPath || !fs.existsSync(this.cliPath)) throw new Error('找不到 DeepSeek Harness CLI。')
 
       fs.mkdirSync(this.profileDir, { recursive: true })
-      return new Promise((resolve, reject) => {
-        const bundledBin = path.resolve(path.dirname(this.cliPath), '..', '..', '..', '.bin')
-        const { shimDir } = createPnpmShim({ cliPath: this.cliPath, nodePath: this.nodePath, dshHome: this.dshHome })
-        const child = spawn(this.nodePath, [this.cliPath, 'plugin', '--profile', 'web', ...commandArgs], {
-          cwd: this.profileDir,
-          env: {
-            ...process.env,
-            DSH_HOME: this.dshHome,
-            PATH: `${path.dirname(this.nodePath)}${path.delimiter}${shimDir}${path.delimiter}${bundledBin}${path.delimiter}${process.env.PATH || ''}`,
-            NO_COLOR: '1',
-            FORCE_COLOR: '0',
-          },
-          windowsHide: true,
-          stdio: ['ignore', 'pipe', 'pipe'],
-        })
-        let output = ''
-        const stdoutDecoder = new StringDecoder('utf8')
-        const stderrDecoder = new StringDecoder('utf8')
-        const record = (text, level) => {
-          const clean = String(text || '').replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '')
-          if (!clean) return
-          output += clean
-          const message = clean.trim()
-          if (message) this.onLog({ level, message, timestamp: new Date().toISOString() })
-        }
-        child.stdout.on('data', (chunk) => record(stdoutDecoder.write(chunk), 'info'))
-        child.stderr.on('data', (chunk) => record(stderrDecoder.write(chunk), 'warn'))
-        child.on('error', reject)
-        child.on('close', (code) => {
-          record(stdoutDecoder.end(), 'info')
-          record(stderrDecoder.end(), 'warn')
-          const detail = output.trim()
-          if (code === 0) resolve(detail)
-          else reject(new Error(detail || `插件命令退出，代码 ${code}`))
-        })
-      })
+      const bundledBin = path.resolve(path.dirname(this.cliPath), '..', '..', '..', '.bin')
+      const { shimDir } = createPnpmShim({ cliPath: this.cliPath, nodePath: this.nodePath, dshHome: this.dshHome })
+      const environment = buildPluginEnvironment({ baseEnv: this.baseEnv, nodePath: this.nodePath, shimDir, bundledBin, dshHome: this.dshHome })
+      return this.#spawnNodeScript(this.cliPath, ['plugin', '--profile', 'web', ...commandArgs], environment)
     }
     try {
       try {
@@ -490,7 +553,11 @@ class PluginManager {
         try {
           return await execute(fallbackArgs)
         } catch (fallbackError) {
-          throw normalizePluginError(fallbackError, { mirrorRetried: true })
+          try {
+            return await this.#runBundledPnpm(fallbackArgs)
+          } catch (directError) {
+            throw normalizePluginError(directError, { mirrorRetried: true, directRetried: true })
+          }
         }
       }
     } finally {
@@ -746,6 +813,7 @@ module.exports = {
   DOMESTIC_NPM_REGISTRY,
   PluginManager,
   analyzeBundlePatch,
+  buildPluginEnvironment,
   communityRecord,
   createPnpmShim,
   hasDshBundle,
