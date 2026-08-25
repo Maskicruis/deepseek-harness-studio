@@ -16,7 +16,21 @@ Studio 在“插件中心”提供“生态组件”和“Skills”页面。精�
 
 > `@paicat1/dsh-screenshot@1.0.0` 暂不再提供精选入口。该上游版本的 bundle patch 引用了未发布的 `dsh-screenshot` loader，会阻止整个 DSH 插件树启动。若此前已安装，Studio 会保留包文件并将其标记为“已隔离”；待上游修复后可通过“尝试更新并重新检查”恢复。
 
-## ModLens 使用
+## DeepSeek 原生视觉与动态模型
+
+Studio 不再把 DeepSeek 模型目录写死为 Flash 和 Pro。配置 DeepSeek 官方 API Key 后，打开模型选择器即可通过认证后的官方 `GET /models` 接口检查当前可用模型；成功结果缓存 5 分钟，后续新模型 ID 也会自动进入选择器。若刷新失败或尚未设置 Key，选择器会保留上次成功目录或使用安装包内置的兜底目录。
+
+使用新视觉模型无需安装 ModLens，也无需配置另一家视觉 API：
+
+1. 在 Harness 内部“设置”中配置 DeepSeek 官方供应商和 API Key；
+2. 打开模型选择器，选择 `DeepSeek-V4-Flash-Vision-Exp`；
+3. 粘贴 PNG、JPEG、GIF 或 WebP 图片并直接提问。
+
+图片会从 Harness 持久附件服务读取，并按 DeepSeek 官方 OpenAI 兼容的 Base64 `image_url` 格式发送。名称中包含 `vision`、`vl` 或 `multimodal` 的后续模型会自动标记为支持图片；其他未知模型会安全地按纯文本模型处理。
+
+## ModLens 使用（可选）
+
+ModLens 适合把 Qwen-VL、Gemini、Claude 或其他视觉端点桥接给纯文本模型。若直接使用 DeepSeek 原生视觉模型，可以跳过本节。
 
 1. 打开“插件 → 生态组件”，找到“ModLens 视觉引擎”并点击“一键接入”。
 2. 安装成功后等待 Harness 自动重启。
@@ -27,7 +41,7 @@ Studio 在“插件中心”提供“生态组件”和“Skills”页面。精�
 
 > ⚠️ **填 API 的地方只有一处**：Studio「偏好设置 → 视觉能力」。如果你打开的是 ModLens 插件自带的「插件配置」页（标题为“视觉引擎 (ModLens)”、引擎默认“自动”、带 claude/codex 勾选），那是插件的原生界面，不需要在那里填 API——直接回到 Studio「偏好设置 → 视觉能力」，默认选中的「阿里千问 Qwen-VL」里粘贴 API Key，点“保存并重启”即可。
 
-### 为什么需要另一套 API
+### 为什么 ModLens 需要另一套 API
 
 ModLens 是视觉桥，不是视觉模型。主智能体仍可使用 DeepSeek 等擅长推理与编码的纯文本模型；当消息包含图片时，ModLens 把图片交给独立的多模态模型解析，再将结构化视觉证据交回主智能体。因此，Harness 的主模型 API 和 ModLens 的视觉 API 是两套互不替代的配置。
 
@@ -60,17 +74,17 @@ Harness 的聊天输入框目前只接受图片（PNG、JPG、WebP、GIF），**
 
 3. 模型会调用 `read_document` 工具读取该文件并返回内容。
 
-该工具挂在 Harness 上、与所选模型无关，因此无论用 `flash`、`pro` 还是带 `(modlens vision)` 的模型，都能读文档。
+该工具挂在 Harness 上、与所选模型无关，因此无论选择当前目录中的哪个 DeepSeek 模型，或带 `(modlens vision)` 的模型，都能读文档。
 
 ### 关于模型切换的报错
 
-v1.07.3 之前，在已经包含图片的会话里切换到纯文本模型（如 `DeepSeek-V4-Flash` / `Pro`）会报错：
+v1.07.3 之前，在已经包含图片的会话里切换到纯文本模型会报错：
 
 > model-unavailable: Model "..." does not accept image input, but this session already contains images: select an image-capable model.
 
 v1.07.3 起，Studio 会在发送给纯文本模型前把**历史图片数据**转换成明确的文字占位，同时保留原始提问和 ModLens 识别结论，因此可以在同一会话切回普通文本模型。安全限制只继续作用于输入框里尚未发送的新图片：
 
-- 当前输入框带有新图片 → 使用名称带 `(modlens vision)` 的模型；
+- 当前输入框带有新图片 → 使用 `DeepSeek-V4-Flash-Vision-Exp` 等原生视觉模型，或名称带 `(modlens vision)` 的模型；
 - 图片已经完成识别 → 可以直接切回普通 DeepSeek 文本模型继续对话。
 
 ## 本地 Skills

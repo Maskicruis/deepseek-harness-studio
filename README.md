@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.07.9-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.9/DeepSeek-Harness-Studio-Setup-1.07.9-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.08.0-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,20 +13,21 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.07.9-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.9/DeepSeek-Harness-Studio-Setup-1.07.9-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.07.9-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.07.9/DeepSeek-Harness-Studio-Portable-1.07.9-x64.exe)（免安装，直接运行）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe)（免安装，直接运行）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
-**安装后配置视觉识图（3 步）：**
+**使用 DeepSeek 原生视觉（2 步）：**
 
-1. 打开 Studio「偏好设置 → 视觉能力」，视觉引擎默认就是「阿里千问 Qwen-VL」；
-2. 粘贴阿里云百炼 DashScope API Key（`sk-` 开头）→ 点「保存并重启」；
-3. 在 Harness 模型选择器选名称带 `(modlens vision)` 的模型，粘贴图片即可识图。
+1. 在 Harness 模型设置中配置 DeepSeek API Key；
+2. 打开模型选择器，选择 `DeepSeek-V4-Flash-Vision-Exp`，粘贴图片即可直接识图。模型选择器会定期读取 DeepSeek 官方模型目录，后续新模型无需客户端写死。
+
+需要将其他视觉 API 接给纯文本模型时，仍可使用“插件 → 生态组件 → ModLens”，并在 Studio「偏好设置 → 视觉能力」配置阿里千问或其他多模态端点。
 
 **读 PDF / Word / Excel：** 聊天输入框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + `read_document` 工具」，例如直接发「读取 `D:\资料\报告.docx` 的内容」。详见 [docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)。
 
-**模型切换说明：** v1.07.3 起，使用 ModLens 识图后可以在同一会话直接切回普通 DeepSeek 文本模型。历史图片会被转换为“图片已省略”的文字占位，原始提问文字和 ModLens 识别结论继续保留；输入框中尚未发送的新图片仍需使用带 `(modlens vision)` 的模型。
+**模型切换说明：** 原生视觉模型和 ModLens 识图后都可以在同一会话切回普通文本模型。历史图片会被转换为“图片已省略”的文字占位并保留已有文字结论；输入框中尚未发送的新图片需使用原生视觉模型或带 `(modlens vision)` 的模型。
 
 **插件启动保护：** v1.07.4 起，应用启动和插件变更后都会验证 Harness 是否真正可用；故障组件会被定位并持久隔离，不会再因安装其他组件而被意外重新启用。
 
@@ -42,12 +43,15 @@
 
 **国内镜像默认：** v1.07.9 起，新安装和未设置下载线路的用户默认使用“仅国内镜像”，不会同时请求 GitHub；如有需要仍可手动选择自动回退或仅 GitHub 官方。
 
+**动态模型发现：** v1.08.0 起，模型选择器通过 DeepSeek 官方 `GET /models` 自动发现可用模型，5 分钟缓存后重新检查；不再假定只有 Flash 和 Pro，并原生支持 `deepseek-v4-flash-vision-exp` 图片输入。
+
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
 ## 已实现
 
 - 原生无边框桌面窗口、启动动画、运行状态与故障恢复。
 - 官方 Harness Web UI：会话、工作区、模型设置、工具调用、权限、Skills、子智能体等能力由 Harness 提供。
+- DeepSeek 动态模型目录：模型选择器读取认证后的官方 `/models` 清单并定期刷新，接口失败时使用最后成功结果或安全兜底；原生视觉模型直接接收 DSH 图片附件。
 - 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录；展示实际安装版本、DSH bundle 与加载模块健康状态，并提供启动诊断、安全隔离、筛选、启停、更新、修复、卸载、安装目录和完整活动日志。
 - 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、文档读取和 DSH Backup 的版本化一键接入入口。
 - ModLens 视觉 API 设置：默认「阿里千问 Qwen-VL」（阿里云百炼 DashScope，国内直连），其余 Gemini、Anthropic、Claude CLI、OpenAI 兼容等多模态端点折叠进「高级选项」；检测引擎状态并在保存后自动重启 Harness；API Key 不进入项目或 Git。
@@ -86,8 +90,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.07.9-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
-- `DeepSeek-Harness-Studio-Portable-1.07.9-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -100,6 +104,7 @@ npm run dist
 
 ## 版本说明
 
+- v1.08.0 —— DeepSeek 动态模型发现与 V4 Flash Vision Exp 原生识图，见 [docs/RELEASE_NOTES_1.08.0_CN.md](docs/RELEASE_NOTES_1.08.0_CN.md)。
 - v1.07.9 —— 默认只使用国内镜像下载更新，见 [docs/RELEASE_NOTES_1.07.9_CN.md](docs/RELEASE_NOTES_1.07.9_CN.md)。
 - v1.07.8 —— 修复更新线路并发、临时文件竞争和安装目录占用，见 [docs/RELEASE_NOTES_1.07.8_CN.md](docs/RELEASE_NOTES_1.07.8_CN.md)。
 - v1.07.7 —— 修复无全局 pnpm 电脑的插件安装，并更换 DeepSeek 背景 + Harness Studio 多尺寸 Windows 图标，见 [docs/RELEASE_NOTES_1.07.7_CN.md](docs/RELEASE_NOTES_1.07.7_CN.md)。
@@ -136,7 +141,8 @@ dsh plugin --profile web remove <package>
 ## 配置与故障排查
 
 - 主智能体 API、模型供应商与主题：进入 Harness 内部的“设置”。
-- ModLens 视觉 API：进入 Studio 右上角“偏好设置 → 视觉能力”，默认使用阿里千问 Qwen-VL。主智能体继续使用 DeepSeek 文本模型；ModLens 另行调用阿里千问识图。
+- DeepSeek 原生视觉：在 Harness 内部配置 DeepSeek 官方 API Key，打开动态模型选择器并选择 `DeepSeek-V4-Flash-Vision-Exp`，即可直接粘贴图片。
+- ModLens 视觉 API（可选）：若需把阿里千问 Qwen-VL 等其他视觉端点桥接给纯文本模型，进入 Studio 右上角“偏好设置 → 视觉能力”配置。
 - Studio 偏好：窗口右上角齿轮。
 - Harness 数据：`%USERPROFILE%\.dsh`。
 - 默认 Web profile：`%USERPROFILE%\.dsh\profiles\web`。

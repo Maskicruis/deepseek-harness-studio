@@ -8,7 +8,7 @@
 
 ## 安装
 
-1. 将 `DeepSeek-Harness-Studio-Setup-1.07.9-x64.exe` 复制到目标电脑。
+1. 将 `DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe` 复制到目标电脑。
 2. 双击运行，在安装向导中选择安装目录；覆盖升级时可继续选择原目录。
 3. 可选择任意有写入权限的目录。若选择 `Program Files` 等受保护目录，Windows 可能要求管理员授权。
 4. 安装完成后程序会自动启动，并创建桌面与开始菜单快捷方式。
@@ -17,6 +17,7 @@
 ## 首次配置
 
 - 在 Harness 内部“设置”中配置模型供应商和 API Key。
+- 模型选择器会使用 DeepSeek API Key 调用官方 `GET /models` 刷新可用模型；选择 `DeepSeek-V4-Flash-Vision-Exp` 后可直接粘贴图片，无需额外视觉插件。
 - 在 Studio 右上角“偏好设置”中可修改默认工作区、本地端口和开机启动。
 - 在聊天框中写出已有绝对路径（例如 `E:\Project\demo`），程序会自动识别并注册为任务路径。
 - 在“插件”中可导入 npm、GitHub 或本地社区插件。请只安装你信任的来源。

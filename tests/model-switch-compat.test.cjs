@@ -4,7 +4,7 @@ const assert = require('node:assert/strict')
 const {
   IMAGE_PLACEHOLDER,
   patchApiProxy,
-  patchDeepSeekAdapter,
+  patchDeepSeekImageProjection,
 } = require('../scripts/patch-dsh-model-switch.cjs')
 
 test('bundled API proxy allows a text model after historical image turns', () => {
@@ -41,10 +41,10 @@ test('DeepSeek adapter projects historical images to a text placeholder', () => 
     '\t\tassertTextOnly(message.content);',
   ].join('\n') + '\n'
 
-  const patched = patchDeepSeekAdapter(source)
+  const patched = patchDeepSeekImageProjection(source)
 
   assert.match(patched.source, /block\.type === "image"/)
   assert.match(patched.source, new RegExp(IMAGE_PLACEHOLDER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   assert.doesNotMatch(patched.source, /assertTextOnly\(message\.content\)/)
-  assert.equal(patchDeepSeekAdapter(patched.source).changed, false)
+  assert.equal(patchDeepSeekImageProjection(patched.source).changed, false)
 })

@@ -157,11 +157,12 @@ function releaseNotes() {
 
 ⬇️ [DeepSeek-Harness-Studio-Portable-${VERSION}-x64.exe](${asset(`DeepSeek-Harness-Studio-Portable-${VERSION}-x64.exe`)})（免安装，解压即用）
 
-**安装后 3 步配置视觉识图：**
+**DeepSeek 原生视觉只需 2 步：**
 
-1. 打开 Studio「偏好设置 → 视觉能力」，视觉引擎默认就是「阿里千问 Qwen-VL」；
-2. 粘贴阿里云百炼 DashScope API Key（\`sk-\` 开头）→ 点「保存并重启」；
-3. 在 Harness 模型选择器选名称带 \`(modlens vision)\` 的模型，粘贴图片即可识图。
+1. 在 Harness 内部“设置”中配置 DeepSeek 官方 API Key；
+2. 打开模型选择器，选择 \`DeepSeek-V4-Flash-Vision-Exp\`，粘贴图片即可识图。
+
+模型选择器会通过官方 \`GET /models\` 接口自动检查可用模型，后续新模型无需客户端写死。需要将 Qwen-VL、Gemini、Claude 等视觉端点桥接给纯文本模型时，仍可选装 ModLens。
 
 **读 PDF / Word / Excel：** 聊天框只收图片（PNG/JPG/WebP/GIF），读文档请用「文件路径 + \`read_document\` 工具」，例如直接发「读取 \`D:\\资料\\报告.docx\` 的内容」。
 
@@ -172,6 +173,16 @@ function releaseNotes() {
 ---
 
 ## 📋 v${DISPLAY_VERSION} 更新内容
+
+### 🧠 动态模型目录
+- DeepSeek 模型选择器不再固定为 Flash 和 Pro；打开选择器时通过认证后的官方 \`GET /models\` 获取当前目录
+- 成功目录缓存 5 分钟，官方后续新增的模型 ID 会自动出现在选择器中，无需再次发布客户端
+- 短时断网、接口超时或尚未设置 API Key 时保留上次成功目录或内置兜底，不影响现有模型使用
+
+### 👁️ DeepSeek 原生视觉
+- 新增 \`deepseek-v4-flash-vision-exp\`，在选择器中显示为文字 + 图片模型
+- 图片由 Harness 持久附件服务读取，并按 OpenAI 兼容 Base64 \`image_url\` 格式发送
+- 支持 PNG、JPEG、GIF 和 WebP；切回纯文本模型时会安全省略历史图片数据
 
 ### 🇨🇳 默认仅国内镜像
 - 新安装和未保存线路设置的用户默认使用“仅国内镜像”
