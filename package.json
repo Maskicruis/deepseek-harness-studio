@@ -1,6 +1,6 @@
 {
   "name": "deepseek-harness-studio",
-  "version": "1.08.0",
+  "version": "1.09.0",
   "description": "A polished Windows desktop shell for DeepSeek Harness with community plugin management.",
   "main": "electron/main.cjs",
   "author": "DeepSeek Harness Studio",
@@ -51,11 +51,12 @@
     "@deepseek-ai/dsh-subprocess": "0.1.0-rc.7",
     "@deepseek-ai/dsh-timeout": "0.1.0-rc.7",
     "@deepseek-ai/dsh-workflow": "0.1.0-rc.7",
+    "@deepseek-harness-studio/dsh-desktop-control": "file:packages/dsh-desktop-control",
+    "https-proxy-agent": "^7.0.6",
     "lucide-react": "^0.468.0",
     "pnpm": "^10.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "https-proxy-agent": "^7.0.6",
     "yaml": "2.9.0"
   },
   "devDependencies": {
@@ -84,6 +85,7 @@
       "build/update-config.json",
       "dist/**/*",
       "electron/**/*",
+      "packages/dsh-desktop-control/**/*",
       "node_modules/**/*",
       "package.json"
     ],

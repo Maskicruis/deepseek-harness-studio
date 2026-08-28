@@ -5,7 +5,7 @@
 界面采用现代智能体产品的分栏布局，真正复用官方 `@deepseek-ai/dsh` 运行时，而不是静态聊天页面。
 
 [![Release](https://img.shields.io/github/v/release/Maskicruis/deepseek-harness-studio?style=flat-square&label=release)](https://github.com/Maskicruis/deepseek-harness-studio/releases/latest)
-[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.08.0-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe)
+[![下载安装版](https://img.shields.io/badge/下载-安装版%20v1.09.0-4d6bfe?style=flat-square)](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.09.0/DeepSeek-Harness-Studio-Setup-1.09.0-x64.exe)
 
 ![DeepSeek Harness Studio](docs/assets/hero-wide-v1.1.png)
 
@@ -13,8 +13,8 @@
 
 **直接下载最新版（Windows 10/11）：**
 
-- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe)（约 147 MB，安装向导，可选择安装目录）
-- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.08.0/DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe)（免安装，直接运行）
+- ⬇️ 安装版（推荐）：[DeepSeek-Harness-Studio-Setup-1.09.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.09.0/DeepSeek-Harness-Studio-Setup-1.09.0-x64.exe)（约 147 MB，安装向导，可选择安装目录）
+- ⬇️ 便携版：[DeepSeek-Harness-Studio-Portable-1.09.0-x64.exe](https://github.com/Maskicruis/deepseek-harness-studio/releases/download/v1.09.0/DeepSeek-Harness-Studio-Portable-1.09.0-x64.exe)（免安装，直接运行）
 
 历史版本见 [Releases](https://github.com/Maskicruis/deepseek-harness-studio/releases)。
 
@@ -45,12 +45,16 @@
 
 **动态模型发现：** v1.08.0 起，模型选择器通过 DeepSeek 官方 `GET /models` 自动发现可用模型，5 分钟缓存后重新检查；不再假定只有 Flash 和 Pro，并原生支持 `deepseek-v4-flash-vision-exp` 图片输入。
 
+**真实搜索与桌面控制：** v1.09.0 起，智能体可调用 DeepSeek 官方 `web_search` 搜索实时互联网内容并给出来源。Windows 桌面控制默认关闭，可在「偏好设置 → 智能体能力」启用；截图、窗口读取、点击、滚动、输入和快捷键均逐次要求批准。详见 [真实世界智能体使用说明](docs/REAL_WORLD_AGENT_CN.md)。
+
 **升级方式：** 在「偏好设置 → 软件更新」检查并下载更新，点「安装并重启」后按安装向导完成覆盖安装（可自定义安装目录）。
 
 ## 已实现
 
 - 原生无边框桌面窗口、启动动画、运行状态与故障恢复。
 - 官方 Harness Web UI：会话、工作区、模型设置、工具调用、权限、Skills、子智能体等能力由 Harness 提供。
+- DeepSeek 官方实时搜索：使用已有 DeepSeek API 配置调用 `web_search`，回答可携带真实网页来源。
+- 可选 Windows 桌面控制：截图、窗口、鼠标、滚轮、文字与受限快捷键；默认关闭并对每个操作单独请求批准。
 - DeepSeek 动态模型目录：模型选择器读取认证后的官方 `/models` 清单并定期刷新，接口失败时使用最后成功结果或安全兜底；原生视觉模型直接接收 DSH 图片附件。
 - 社区插件中心：支持 npm 包、`github:owner/repo`、GitHub URL 和本地插件目录；展示实际安装版本、DSH bundle 与加载模块健康状态，并提供启动诊断、安全隔离、筛选、启停、更新、修复、卸载、安装目录和完整活动日志。
 - 精选生态组件：内置 ModLens 视觉、ModSearch 联网搜索、PPTFast、文档读取和 DSH Backup 的版本化一键接入入口。
@@ -90,8 +94,8 @@ npm run dist
 
 输出位于 `release/`：
 
-- `DeepSeek-Harness-Studio-Setup-1.08.0-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
-- `DeepSeek-Harness-Studio-Portable-1.08.0-x64.exe`：免安装版。
+- `DeepSeek-Harness-Studio-Setup-1.09.0-x64.exe`：推荐的安装向导，可自定义安装目录并覆盖升级现有版本。
+- `DeepSeek-Harness-Studio-Portable-1.09.0-x64.exe`：免安装版。
 
 构建脚本会先运行 `npm run runtime:prepare`，把当前 Node.js 24 运行时复制到打包资源中，因此成品不依赖用户系统 PATH；该大型二进制不提交到 Git。Harness 本身作为 production dependency 一同打包。
 
@@ -101,9 +105,11 @@ npm run dist
 - 精选生态组件与 ModLens 使用：[docs/COMPONENTS_CN.md](docs/COMPONENTS_CN.md)
 - 插件中心使用与故障恢复：[docs/PLUGIN_CENTER_CN.md](docs/PLUGIN_CENTER_CN.md)
 - 版本更新与 GitHub 发布：[docs/UPDATES_CN.md](docs/UPDATES_CN.md)
+- 真实互联网搜索与 Windows 桌面控制：[docs/REAL_WORLD_AGENT_CN.md](docs/REAL_WORLD_AGENT_CN.md)
 
 ## 版本说明
 
+- v1.09.0 —— 官方实时搜索与逐次授权的 Windows 桌面控制，见 [docs/RELEASE_NOTES_1.09.0_CN.md](docs/RELEASE_NOTES_1.09.0_CN.md)。
 - v1.08.0 —— DeepSeek 动态模型发现与 V4 Flash Vision Exp 原生识图，见 [docs/RELEASE_NOTES_1.08.0_CN.md](docs/RELEASE_NOTES_1.08.0_CN.md)。
 - v1.07.9 —— 默认只使用国内镜像下载更新，见 [docs/RELEASE_NOTES_1.07.9_CN.md](docs/RELEASE_NOTES_1.07.9_CN.md)。
 - v1.07.8 —— 修复更新线路并发、临时文件竞争和安装目录占用，见 [docs/RELEASE_NOTES_1.07.8_CN.md](docs/RELEASE_NOTES_1.07.8_CN.md)。
@@ -144,6 +150,8 @@ dsh plugin --profile web remove <package>
 - DeepSeek 原生视觉：在 Harness 内部配置 DeepSeek 官方 API Key，打开动态模型选择器并选择 `DeepSeek-V4-Flash-Vision-Exp`，即可直接粘贴图片。
 - ModLens 视觉 API（可选）：若需把阿里千问 Qwen-VL 等其他视觉端点桥接给纯文本模型，进入 Studio 右上角“偏好设置 → 视觉能力”配置。
 - Studio 偏好：窗口右上角齿轮。
+- 实时搜索：先配置 DeepSeek 官方 API Key，直接要求“搜索今天/最新的……并附来源”；Harness 会展示 `web_search` 工具卡片。
+- 桌面控制：在「Studio 偏好设置 → 智能体能力」启用，保存后 Harness 自动重启。选择支持图片的模型后，可要求“查看当前桌面并……”，每个真实操作都需要你批准。
 - Harness 数据：`%USERPROFILE%\.dsh`。
 - 默认 Web profile：`%USERPROFILE%\.dsh\profiles\web`。
 - 默认地址：`http://127.0.0.1:3080`，只监听本机。
@@ -161,6 +169,8 @@ electron/
   lib/plugin-manager.cjs    社区插件清单、导入、启停与卸载
   lib/modlens-manager.cjs   ModLens Provider 配置、状态诊断与安全代理
   lib/update-manager.cjs    GitHub Release 检测、下载与完整性校验
+packages/
+  dsh-desktop-control/      自包含、逐次授权的 Windows 桌面工具
 src/
   App.jsx                   桌面界面
   styles.css                视觉系统与动效

@@ -15,6 +15,7 @@ test('settings store persists sanitized values', () => {
     workspace: 'E:\\Workspace',
     autoLaunch: true,
     closeToTray: false,
+    desktopControl: false,
     autoCheckUpdates: true,
     updateRepository: '',
     updateDownloadMode: 'mirror',
@@ -22,6 +23,8 @@ test('settings store persists sanitized values', () => {
   })
   store.set({ port: 80 })
   assert.equal(store.get().port, 3080)
+  store.set({ desktopControl: true })
+  assert.equal(store.get().desktopControl, true)
   store.set({ autoCheckUpdates: false, updateRepository: '  owner/repository\r\n' })
   assert.equal(store.get().autoCheckUpdates, false)
   assert.equal(store.get().updateRepository, 'owner/repository')

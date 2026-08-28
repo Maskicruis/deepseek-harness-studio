@@ -4,6 +4,7 @@ const assert = require('node:assert/strict')
 const {
   IMAGE_PLACEHOLDER,
   patchApiProxy,
+  patchDshAgentCapabilities,
   patchDeepSeekImageProjection,
 } = require('../scripts/patch-dsh-model-switch.cjs')
 
@@ -47,4 +48,35 @@ test('DeepSeek adapter projects historical images to a text placeholder', () => 
   assert.match(patched.source, new RegExp(IMAGE_PLACEHOLDER.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   assert.doesNotMatch(patched.source, /assertTextOnly\(message\.content\)/)
   assert.equal(patchDeepSeekImageProjection(patched.source).changed, false)
+})
+
+test('DSH composition keeps official live search and approval-gated desktop tools', () => {
+  const source = [
+    '    - id: web',
+    "      name: '@deepseek-ai/dsh-web'",
+    '      config:',
+    '        searchProvider: deepseek-official',
+    '',
+    '    - id: web-search-deepseek',
+    "      name: '@deepseek-ai/dsh-web-search-deepseek'",
+    '      config:',
+    '        apiKeyEnv: DEEPSEEK_API_KEY',
+    '',
+    '    - id: tool-web',
+    "      name: '@deepseek-ai/dsh-tool-web'",
+    '      config:',
+    '        fetch: false',
+    '        searchTimeoutMs: 60000',
+  ].join('\n')
+
+  const patched = patchDshAgentCapabilities(source)
+
+  assert.equal(patched.changed, true)
+  assert.match(patched.source, /searchProvider: deepseek-official/)
+  assert.match(patched.source, /name: '@deepseek-ai\/dsh-web-search-deepseek'/)
+  assert.match(patched.source, /name: '@deepseek-harness-studio\/dsh-desktop-control'/)
+  assert.match(patched.source, /DSH_STUDIO_DESKTOP_CONTROL !== '1'/)
+  assert.match(patched.source, /fetch: false/)
+  assert.doesNotMatch(patched.source, /web-fetch-http/)
+  assert.equal(patchDshAgentCapabilities(patched.source).changed, false)
 })

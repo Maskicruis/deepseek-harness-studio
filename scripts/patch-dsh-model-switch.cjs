@@ -380,6 +380,88 @@ function patchDeepSeekSerializeTypes(source) {
   )
 }
 
+function patchDshAgentCapabilities(source) {
+  const before = [
+    '    - id: web',
+    "      name: '@deepseek-ai/dsh-web'",
+    '      config:',
+    '        searchProvider: deepseek-official',
+    '',
+    '    - id: web-search-deepseek',
+    "      name: '@deepseek-ai/dsh-web-search-deepseek'",
+    '      config:',
+    '        apiKeyEnv: DEEPSEEK_API_KEY',
+    '',
+    '    - id: tool-web',
+    "      name: '@deepseek-ai/dsh-tool-web'",
+    '      config:',
+    '        fetch: false',
+    '        searchTimeoutMs: 60000',
+  ].join('\n')
+  const unsafeFetchAfter = [
+    '    - id: web',
+    "      name: '@deepseek-ai/dsh-web'",
+    '      config:',
+    '        searchProvider: deepseek-official',
+    '        fetchProvider: http',
+    '',
+    '    - id: web-search-deepseek',
+    "      name: '@deepseek-ai/dsh-web-search-deepseek'",
+    '      config:',
+    '        apiKeyEnv: DEEPSEEK_API_KEY',
+    '',
+    '    # Public-only anonymous fetch: rejects loopback/private/link-local destinations,',
+    '    # follows only same-origin redirects, sends no cookies, and caps time and body size.',
+    '    - id: web-fetch-http',
+    "      name: '@deepseek-ai/dsh-web-fetch-http'",
+    '      config:',
+    '        maxResponseBytes: 5000000',
+    '        maxBodyChars: 100000',
+    '        timeoutMs: 30000',
+    '        maxRedirects: 5',
+    '',
+    '    - id: tool-web',
+    "      name: '@deepseek-ai/dsh-tool-web'",
+    '      config:',
+    '        fetch: true',
+    '        searchTimeoutMs: 60000',
+    '        fetchTimeoutMs: 30000',
+    '',
+    '    # Optional first-party Windows computer-use tools. Studio enables this row',
+    '    # only after the user turns on desktop control in Preferences.',
+    '    - id: studio-desktop-control',
+    "      name: '@deepseek-harness-studio/dsh-desktop-control'",
+    "      disabled: !!js process.platform !== 'win32' || process.env.DSH_STUDIO_DESKTOP_CONTROL !== '1'",
+  ].join('\n')
+  const after = [
+    '    - id: web',
+    "      name: '@deepseek-ai/dsh-web'",
+    '      config:',
+    '        searchProvider: deepseek-official',
+    '',
+    '    - id: web-search-deepseek',
+    "      name: '@deepseek-ai/dsh-web-search-deepseek'",
+    '      config:',
+    '        apiKeyEnv: DEEPSEEK_API_KEY',
+    '',
+    '    - id: tool-web',
+    "      name: '@deepseek-ai/dsh-tool-web'",
+    '      config:',
+    '        fetch: false',
+    '        searchTimeoutMs: 60000',
+    '',
+    '    # Optional first-party Windows computer-use tools. Studio enables this row',
+    '    # only after the user turns on desktop control in Preferences.',
+    '    - id: studio-desktop-control',
+    "      name: '@deepseek-harness-studio/dsh-desktop-control'",
+    "      disabled: !!js process.platform !== 'win32' || process.env.DSH_STUDIO_DESKTOP_CONTROL !== '1'",
+  ].join('\n')
+  if (source.includes(unsafeFetchAfter)) {
+    return replaceOnce(source, unsafeFetchAfter, after, 'remove unsafe DSH rc.7 web fetch provider')
+  }
+  return replaceOnce(source, before, after, 'DSH live web search and desktop capabilities')
+}
+
 function patchFile(filePath, transform) {
   if (!fs.existsSync(filePath)) throw new Error(`required DSH file not found: ${filePath}`)
   const source = fs.readFileSync(filePath, 'utf8')
@@ -397,6 +479,7 @@ function patchDshModelSwitch(appRoot) {
     patchFile(path.join(nodeModules, '@deepseek-ai', 'dsh-llm-deepseek', 'lib', 'types', 'adapter.d.ts'), patchDeepSeekAdapterTypes),
     patchFile(path.join(nodeModules, '@deepseek-ai', 'dsh-llm-deepseek', 'lib', 'types', 'index.d.ts'), patchDeepSeekIndexTypes),
     patchFile(path.join(nodeModules, '@deepseek-ai', 'dsh-llm-deepseek', 'lib', 'types', 'serialize.d.ts'), patchDeepSeekSerializeTypes),
+    patchFile(path.join(nodeModules, '@deepseek-ai', 'dsh-base', 'cordis.patch.yml'), patchDshAgentCapabilities),
   ]
 }
 
@@ -416,5 +499,6 @@ module.exports = {
   patchDeepSeekImageProjection,
   patchDeepSeekIndexTypes,
   patchDeepSeekSerializeTypes,
+  patchDshAgentCapabilities,
   patchDshModelSwitch,
 }

@@ -21,6 +21,7 @@ import {
   LoaderCircle,
   Maximize2,
   Minimize2,
+  MousePointerClick,
   Package,
   PanelRightClose,
   Presentation,
@@ -662,7 +663,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.07.3'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.09.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -872,6 +873,20 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
       </div>
       <div className="panel-body settings-body">
         <section>
+          <div className="section-label"><span>智能体能力</span></div>
+          <SettingRow icon={Globe2} title="实时联网搜索" description="内置 DeepSeek 官方 web_search；搜索真实互联网内容，并在回答中保留来源引用">
+            <span className="capability-state ready"><CircleCheck size={13} />已内置</span>
+          </SettingRow>
+          <SettingRow icon={MousePointerClick} title="真实桌面控制" description="截图、窗口聚焦、鼠标和键盘操作；每一步都在对话框中等待一次性批准">
+            <Toggle checked={Boolean(settings.desktopControl)} label="真实桌面控制" onChange={(desktopControl) => setSettings((current) => ({ ...current, desktopControl }))} />
+          </SettingRow>
+          <div className="desktop-control-note">
+            <ShieldCheck size={16} />
+            <div><strong>默认关闭，逐次授权</strong><p>启用只会加载工具，不会自动控制电脑。截图也会先请求批准；密码、UAC 安全桌面和破坏性确认必须由你亲自处理。</p></div>
+          </div>
+        </section>
+
+        <section>
           <div className="section-label"><span>视觉能力</span></div>
           <VisionSettingsCard status={modlensStatus} busy={modlensBusy} onRefresh={onCheckModlens} onSave={onSaveModlens} />
         </section>
@@ -953,7 +968,7 @@ function SettingsDrawer({ appInfo, paths, runtime, settings, setSettings, update
         <p className="brand-disclaimer">DeepSeek 名称与图标归其权利人所有。本客户端基于开源 Harness 构建。</p>
       </div>
       <div className="settings-footer">
-        {toast ? <span className={toast.type}>{toast.message}</span> : <span>更改工作区或端口会重启 Harness</span>}
+        {toast ? <span className={toast.type}>{toast.message}</span> : <span>更改工作区、端口或桌面控制会重启 Harness</span>}
         <button className="primary-button" type="button" onClick={onSave}>保存设置</button>
       </div>
     </aside>
@@ -965,10 +980,10 @@ export default function App() {
   const [panel, setPanel] = useState(null)
   const [inventory, setInventory] = useState({ core: [], community: [], count: 0, profileDir: '', summary: { total: 0, ready: 0, disabled: 0, issues: 0, blocking: 0 } })
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
-  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'mirror', updateMirrorUrl: '' })
+  const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, desktopControl: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'mirror', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.07.3', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.07.3', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.09.0', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.09.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)

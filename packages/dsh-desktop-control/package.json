@@ -1,0 +1,12 @@
+{
+  "name": "@deepseek-harness-studio/dsh-desktop-control",
+  "version": "1.0.0",
+  "description": "Approval-gated Windows desktop observation and input tools for DeepSeek Harness Studio.",
+  "type": "module",
+  "main": "lib/index.js",
+  "files": [
+    "lib",
+    "scripts"
+  ],
+  "license": "MIT"
+}

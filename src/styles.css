@@ -296,6 +296,11 @@ button:focus-visible, input:focus-visible { outline: 2px solid rgba(113, 135, 25
 .settings-panel { grid-template-rows: auto minmax(0, 1fr) auto; }
 .settings-body { padding-top: 1px; }
 .settings-body section:not(.about-card) { margin-bottom: 24px; }
+.capability-state { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border-radius: 8px; font-size: 8px; font-weight: 750; white-space: nowrap; }
+.capability-state.ready { color: #83dfb2; background: rgba(79, 214, 156, 0.09); }
+.desktop-control-note { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 9px; margin-top: 8px; padding: 11px; border: 1px solid rgba(244, 189, 105, 0.16); border-radius: 10px; color: #dfb573; background: rgba(244, 189, 105, 0.05); }
+.desktop-control-note strong { display: block; font-size: 9px; }
+.desktop-control-note p { margin: 4px 0 0; color: #907b5d; font-size: 8px; line-height: 1.55; }
 .vision-card { overflow: hidden; padding: 13px; border: 1px solid rgba(105, 128, 238, 0.18); border-radius: 14px; background: radial-gradient(circle at 100% 0, rgba(77, 107, 254, 0.14), transparent 38%), rgba(255, 255, 255, 0.024); }
 .vision-card.ready { border-color: rgba(79, 214, 156, 0.24); background: radial-gradient(circle at 100% 0, rgba(79, 214, 156, 0.1), transparent 38%), rgba(255, 255, 255, 0.024); }
 .vision-card.degraded { border-color: rgba(244, 189, 105, 0.22); }

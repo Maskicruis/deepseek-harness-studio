@@ -23,6 +23,28 @@ function resolveProjectRoot() {
   return path.resolve(__dirname, '..', '..')
 }
 
+function resolveDshHome() {
+  return path.resolve(process.env.DSH_HOME || path.join(os.homedir(), '.dsh'))
+}
+
+function resolveDesktopControlSource() {
+  const root = resolveProjectRoot()
+  return firstExisting([
+    path.join(root, 'packages', 'dsh-desktop-control'),
+    path.join(root, 'node_modules', '@deepseek-harness-studio', 'dsh-desktop-control'),
+  ])
+}
+
+function ensureDesktopControlPackage({ dshHome = resolveDshHome(), source = resolveDesktopControlSource() } = {}) {
+  if (!source || !fs.existsSync(path.join(source, 'package.json'))) {
+    throw new Error('安装包中缺少桌面控制组件，请重新安装或更新 Studio。')
+  }
+  const target = path.join(dshHome, 'profiles', 'web', 'node_modules', '@deepseek-harness-studio', 'dsh-desktop-control')
+  fs.mkdirSync(target, { recursive: true })
+  fs.cpSync(source, target, { recursive: true, force: true, dereference: true })
+  return target
+}
+
 function resolveNodeExecutable() {
   const root = resolveProjectRoot()
   const candidates = [
@@ -220,9 +242,26 @@ class RuntimeManager extends EventEmitter {
     this.#log(`工作区：${workspace}`)
     this.#log(`启动：dsh web --port ${settings.port}`)
 
+    if (settings.desktopControl) {
+      try {
+        ensureDesktopControlPackage()
+        this.#log('真实桌面控制组件已部署（每次操作仍需单独批准）')
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        this.#log(message, 'error')
+        this.#setStatus({ phase: 'error', message, url: '', pid: null })
+        return this.getStatus()
+      }
+    }
+
     const child = spawn(node, [cli, 'web', '--port', String(settings.port)], {
       cwd: workspace,
-      env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+      env: {
+        ...process.env,
+        NO_COLOR: '1',
+        FORCE_COLOR: '0',
+        DSH_STUDIO_DESKTOP_CONTROL: settings.desktopControl ? '1' : '0',
+      },
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
     })
@@ -303,9 +342,11 @@ class RuntimeManager extends EventEmitter {
 module.exports = {
   RuntimeManager,
   callHarness,
+  ensureDesktopControlPackage,
   ensureWorkspaceRegistered,
   firstExisting,
   probeHarness,
+  resolveDshHome,
   resolveDshCli,
   resolveNodeExecutable,
 }

@@ -4,7 +4,25 @@ const fs = require('node:fs')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
-const { ensureWorkspaceRegistered } = require('../electron/lib/runtime-manager.cjs')
+const { ensureDesktopControlPackage, ensureWorkspaceRegistered } = require('../electron/lib/runtime-manager.cjs')
+
+test('desktop control package is deployed relative to the active DSH home', () => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-desktop-package-test-'))
+  const source = path.join(temporary, 'source')
+  const dshHome = path.join(temporary, 'another-user', '.dsh')
+  fs.mkdirSync(path.join(source, 'lib'), { recursive: true })
+  fs.writeFileSync(path.join(source, 'package.json'), '{"name":"studio-desktop-control"}\n', 'utf8')
+  fs.writeFileSync(path.join(source, 'lib', 'index.js'), 'export const ready = true\n', 'utf8')
+
+  try {
+    const target = ensureDesktopControlPackage({ dshHome, source })
+    assert.equal(target, path.join(dshHome, 'profiles', 'web', 'node_modules', '@deepseek-harness-studio', 'dsh-desktop-control'))
+    assert.equal(fs.readFileSync(path.join(target, 'lib', 'index.js'), 'utf8'), 'export const ready = true\n')
+    assert.equal(target.includes('E:\\DeepSeek'), false)
+  } finally {
+    fs.rmSync(temporary, { recursive: true, force: true })
+  }
+})
 
 test('default workspace is created and registered through the Harness API', async () => {
   const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'dsh-workspace-test-'))

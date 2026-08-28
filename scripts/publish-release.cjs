@@ -147,6 +147,33 @@ async function main() {
 
 function releaseNotes() {
   const asset = (name) => `https://github.com/${repo}/releases/download/${TAG}/${name}`
+  const notesPath = path.join(__dirname, '..', 'docs', `RELEASE_NOTES_${VERSION}_CN.md`)
+  if (fs.existsSync(notesPath)) {
+    const details = fs.readFileSync(notesPath, 'utf8')
+      .replace(/^# .*\r?\n/, '')
+      .replace(/^> .*\r?\n/, '')
+      .trim()
+    return `## 🚀 安装使用
+
+**Windows 10/11 用户直接下载安装版（推荐）：**
+
+⬇️ [DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe](${asset(`DeepSeek-Harness-Studio-Setup-${VERSION}-x64.exe`)})（安装向导，可选择安装目录）
+
+不想安装？也可以直接使用免安装便携版：
+
+⬇️ [DeepSeek-Harness-Studio-Portable-${VERSION}-x64.exe](${asset(`DeepSeek-Harness-Studio-Portable-${VERSION}-x64.exe`)})（免安装，直接运行）
+
+**完整性校验：** 安装版与便携版均收录在本 Release 的 \`SHA256SUMS.txt\` 中。
+
+---
+
+${details}
+
+---
+
+完整文档见仓库 [README](https://github.com/${repo}#readme)。
+`
+  }
   return `## 🚀 安装使用
 
 **Windows 10/11 用户直接下载安装版（推荐）：**

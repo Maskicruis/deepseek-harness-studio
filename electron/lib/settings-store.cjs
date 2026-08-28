@@ -6,6 +6,7 @@ const DEFAULT_SETTINGS = Object.freeze({
   workspace: '',
   autoLaunch: false,
   closeToTray: false,
+  desktopControl: false,
   autoCheckUpdates: true,
   updateRepository: '',
   updateDownloadMode: 'mirror',
@@ -48,6 +49,7 @@ class SettingsStore {
       workspace: typeof candidate.workspace === 'string' ? candidate.workspace : '',
       autoLaunch: Boolean(candidate.autoLaunch),
       closeToTray: Boolean(candidate.closeToTray),
+      desktopControl: Boolean(candidate.desktopControl),
       autoCheckUpdates: candidate.autoCheckUpdates !== false,
       updateRepository: typeof candidate.updateRepository === 'string'
         ? candidate.updateRepository.replace(/[\r\n]/g, '').trim().slice(0, 200)

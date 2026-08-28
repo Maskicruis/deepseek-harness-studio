@@ -157,7 +157,9 @@ function registerSettingsIpc() {
       openAtLogin: next.autoLaunch,
       openAsHidden: false,
     })
-    const runtimeChanged = previous.port !== next.port || previous.workspace !== next.workspace
+    const runtimeChanged = previous.port !== next.port
+      || previous.workspace !== next.workspace
+      || previous.desktopControl !== next.desktopControl
     if (runtimeChanged) await runtime.restart()
     const updateSettingsChanged = previous.autoCheckUpdates !== next.autoCheckUpdates
       || previous.updateRepository !== next.updateRepository
