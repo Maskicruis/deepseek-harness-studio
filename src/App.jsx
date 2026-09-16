@@ -46,6 +46,7 @@ const EMPTY_RUNTIME = {
   url: '',
   pid: null,
   version: '0.1.0-rc.7',
+  uiRevision: '',
   logs: [],
 }
 
@@ -663,7 +664,7 @@ function UpdateCard({ status, onCheck, onDownload, onInstall }) {
           <strong>{status.phase === 'downloaded' ? '更新已准备好' : available ? '发现可用更新' : '软件更新'}</strong>
           <p>{status.message || '尚未检查更新'}</p>
         </div>
-        <span className="version-chip">v{status.currentVersion || '1.09.0'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
+        <span className="version-chip">v{status.currentVersion || '1.09.1'}{status.latestVersion && status.latestVersion !== status.currentVersion ? ` → v${status.latestVersion}` : ''}</span>
       </div>
       {status.phase === 'downloading' ? <div className="update-progress"><span style={{ width: `${status.progress || 0}%` }} /></div> : null}
       {status.notes && available ? <p className="update-notes">{status.notes}</p> : null}
@@ -982,8 +983,8 @@ export default function App() {
   const [skillInventory, setSkillInventory] = useState({ root: '', skills: [], count: 0 })
   const [settings, setSettings] = useState({ port: 3080, workspace: '', autoLaunch: false, desktopControl: false, autoCheckUpdates: true, updateRepository: '', updateDownloadMode: 'mirror', updateMirrorUrl: '' })
   const [paths, setPaths] = useState({ node: '', cli: '', dshHome: '' })
-  const [appInfo, setAppInfo] = useState({ version: '1.09.0', harnessVersion: '0.1.0-rc.7' })
-  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.09.0', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
+  const [appInfo, setAppInfo] = useState({ version: '1.09.1', harnessVersion: '0.1.0-rc.7' })
+  const [updateStatus, setUpdateStatus] = useState({ phase: 'idle', message: '尚未检查更新', currentVersion: '1.09.1', latestVersion: '', repository: '', releaseUrl: '', notes: '', progress: 0, checkedAt: '', downloadSource: '', downloadAttempts: [] })
   const [modlensStatus, setModlensStatus] = useState(EMPTY_MODLENS_STATUS)
   const [modlensBusy, setModlensBusy] = useState(false)
   const [balance, setBalance] = useState(null)
@@ -1086,7 +1087,7 @@ export default function App() {
       view.removeEventListener('did-stop-loading', handleReady)
       view.removeEventListener('did-fail-load', handleFailure)
     }
-  }, [runtime.phase, runtime.url, webKey])
+  }, [runtime.phase, runtime.url, runtime.uiRevision, webKey])
 
   const restart = async () => {
     try {
@@ -1241,11 +1242,21 @@ export default function App() {
 
   const reloadWeb = () => {
     setWebReady(false)
-    if (isElectron && webviewRef.current?.reload) webviewRef.current.reload()
-    else setWebKey((value) => value + 1)
+    setWebKey((value) => value + 1)
   }
 
   const showRuntime = runtime.phase === 'running' && runtime.url
+  const runtimeUiUrl = useMemo(() => {
+    if (!runtime.url) return ''
+    try {
+      const target = new URL(runtime.url)
+      target.searchParams.set('studioBoot', runtime.uiRevision || String(webKey))
+      target.searchParams.set('studioReload', String(webKey))
+      return target.toString()
+    } catch {
+      return runtime.url
+    }
+  }, [runtime.url, runtime.uiRevision, webKey])
 
   return (
     <div className="app-shell">
@@ -1255,14 +1266,14 @@ export default function App() {
           <div className={cx('harness-frame', webReady && 'ready')}>
             {isElectron ? (
               <webview
-                key={`${runtime.url}-${webKey}`}
+                key={runtimeUiUrl}
                 ref={webviewRef}
-                src={runtime.url}
-                partition="persist:deepseek-harness"
+                src={runtimeUiUrl}
+                partition="deepseek-harness"
                 webpreferences="contextIsolation=yes,nodeIntegration=no,sandbox=yes"
               />
             ) : (
-              <iframe key={`${runtime.url}-${webKey}`} src={runtime.url} title="DeepSeek Harness" onLoad={() => setWebReady(true)} />
+              <iframe key={runtimeUiUrl} src={runtimeUiUrl} title="DeepSeek Harness" onLoad={() => setWebReady(true)} />
             )}
             {!webReady ? <RuntimeSplash runtime={{ ...runtime, phase: 'starting', message: '正在载入 Harness 界面…' }} /> : null}
           </div>

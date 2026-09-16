@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [1.09.1] - 2026-09-16
+
+### 🧩 DSH 客户端模块一致性
+- 修复更新或插件变更后，持久 Electron 缓存可能保留旧 `@deepseek-ai/dsh-client-modules/client.js`，导致新版 bootstrap 报“did not export the bootstrap module face”的问题。
+- Harness Web 改用独立的非持久 session；启动时清理 Web 缓存、Service Worker 与 Cache Storage，并为每次启动/手动刷新生成唯一 URL 修订号。
+- 启动前校验六个关键 DSH 包的版本与浏览器 bootstrap 导出契约；安装文件缺失或混用时直接显示可操作的错误，不再进入损坏页面。
+- 连接已有 Harness 服务时，优先读取 `host.describe`；rc.7 未提供该路由时会直接抓取实际 boot 清单、主 Web bundle 与 `client.js`，确认双方接口一致后才嵌入。
+- 应用首次启动新版时会清理旧 `persist:deepseek-harness` 分区中的缓存数据，但保留会话、插件、Skills、API Key 和工作区文件。
+
+### ✅ 验证
+- 新增 DSH 核心版本混用、新 bootstrap + 旧 client face、外部 Harness 版本冲突、非持久 Web 分区与真实 boot 资源验证测试。
+- 51 项自动化测试、前端生产构建和隔离 DSH home 的真实 Harness 启动冒烟测试通过。
+
 ## [1.09.0] - 2026-08-28
 
 ### 🌐 真实互联网搜索

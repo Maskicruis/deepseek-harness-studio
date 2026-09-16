@@ -42,9 +42,9 @@ function createBrowserMock() {
   }
   let updateStatus = {
     phase: 'available',
-    message: '当前已是最新版本 1.09.0',
-    currentVersion: '1.09.0',
-    latestVersion: '1.09.0',
+    message: '当前已是最新版本 1.09.1',
+    currentVersion: '1.09.1',
+    latestVersion: '1.09.1',
     repository: settings.updateRepository,
     releaseUrl: 'https://github.com/',
     notes: '性能优化、插件体验改进与错误修复。',
@@ -86,7 +86,7 @@ function createBrowserMock() {
   }
   return {
     isMock: true,
-    app: { info: async () => ({ version: '1.09.0', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
+    app: { info: async () => ({ version: '1.09.1', platform: 'win32', harnessVersion: '0.1.0-rc.7' }) },
     window: {
       minimize() {}, toggleMaximize() {}, close() {},
       isMaximized: async () => false,
@@ -110,7 +110,7 @@ function createBrowserMock() {
     updates: {
       status: async () => updateStatus,
       check: async () => updateStatus,
-      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.09.0 已通过国内社区镜像下载并通过 SHA-256 校验', progress: 100, downloadedPath: 'update.exe', downloadSource: '国内社区镜像' }),
+      download: async () => (updateStatus = { ...updateStatus, phase: 'downloaded', message: '版本 1.09.1 已通过国内社区镜像下载并通过 SHA-256 校验', progress: 100, downloadedPath: 'update.exe', downloadSource: '国内社区镜像' }),
       install: async () => ({ launched: true }),
       onStatus: () => () => {},
     },

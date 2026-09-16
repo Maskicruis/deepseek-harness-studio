@@ -21,6 +21,24 @@ let settings = null
 let pluginBusy = false
 let defaultWorkspace = ''
 let defaultUpdateRepository = ''
+const HARNESS_PARTITION = 'deepseek-harness'
+const LEGACY_HARNESS_PARTITION = 'persist:deepseek-harness'
+
+async function clearHarnessClientCache() {
+  const harnessSession = session.fromPartition(HARNESS_PARTITION)
+  await Promise.all([
+    harnessSession.clearCache(),
+    harnessSession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] }),
+  ])
+}
+
+async function clearLegacyHarnessClientCache() {
+  const legacySession = session.fromPartition(LEGACY_HARNESS_PARTITION)
+  await Promise.all([
+    legacySession.clearCache(),
+    legacySession.clearStorageData({ storages: ['serviceworkers', 'cachestorage'] }),
+  ])
+}
 
 function readDefaultUpdateRepository() {
   try {
@@ -88,7 +106,7 @@ function registerWindowIpc() {
 }
 
 function registerPromptPathDetection() {
-  const harnessSession = session.fromPartition('persist:deepseek-harness')
+  const harnessSession = session.fromPartition(HARNESS_PARTITION)
   harnessSession.webRequest.onBeforeRequest({ urls: ['http://127.0.0.1/*'] }, (details, callback) => {
     callback({})
     if (details.method !== 'POST' || !details.url.includes('/api/session.prompt')) return
@@ -112,7 +130,7 @@ function registerRuntimeIpc() {
   ipcMain.handle('app:info', () => ({
     version: app.getVersion(),
     platform: process.platform,
-    harnessVersion: '0.1.0-rc.7',
+    harnessVersion: runtime.getHarnessVersion(),
   }))
   ipcMain.handle('runtime:status', () => runtime.getStatus())
   ipcMain.handle('runtime:start', async () => {
@@ -355,7 +373,8 @@ app.whenReady().then(async () => {
   defaultWorkspace = path.join(app.getPath('documents'), 'DeepSeek Harness', 'Workspace')
   if (!settings.get().workspace.trim()) settings.set({ workspace: defaultWorkspace })
   fs.mkdirSync(settings.get().workspace, { recursive: true })
-  runtime = new RuntimeManager(settings)
+  await clearLegacyHarnessClientCache().catch((error) => console.warn('Legacy Harness cache cleanup failed:', error))
+  runtime = new RuntimeManager(settings, { beforeStart: clearHarnessClientCache })
   const runtimePaths = runtime.getPaths()
   plugins = new PluginManager({
     cliPath: runtimePaths.cli,

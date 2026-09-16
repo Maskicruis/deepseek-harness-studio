@@ -5,6 +5,7 @@ const fs = require('node:fs')
 const http = require('node:http')
 const os = require('node:os')
 const path = require('node:path')
+const { assertDshRuntimeIntegrity, readBundledDshVersion } = require('./dsh-runtime-integrity.cjs')
 
 const READY_MARKERS = ['DeepSeek Harness', '<div id="root"></div>']
 
@@ -133,6 +134,67 @@ function callHarness(port, method, payload, timeout = 5000) {
   })
 }
 
+function fetchHarnessText(port, resourcePath, timeout = 5000) {
+  return new Promise((resolve, reject) => {
+    const request = http.get({
+      hostname: '127.0.0.1',
+      port,
+      path: resourcePath,
+      timeout,
+      headers: { 'cache-control': 'no-cache', pragma: 'no-cache' },
+    }, (response) => {
+      let body = ''
+      response.setEncoding('utf8')
+      response.on('data', (chunk) => { body += chunk })
+      response.on('end', () => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Harness 资源 ${resourcePath} 返回 HTTP ${response.statusCode}`))
+          return
+        }
+        resolve(body)
+      })
+    })
+    request.on('timeout', () => request.destroy(new Error(`Harness 资源 ${resourcePath} 请求超时`)))
+    request.on('error', reject)
+  })
+}
+
+async function inspectHarnessBootstrap(port) {
+  const html = await fetchHarnessText(port, '/')
+  const bootMatch = html.match(/window\.__DSH_BOOT__\s*=\s*(\{[\s\S]*?\})\s*<\/script>/)
+  if (!bootMatch) throw new Error('Harness 首页缺少 __DSH_BOOT__ 清单')
+  let boot
+  try {
+    boot = JSON.parse(bootMatch[1])
+  } catch (error) {
+    throw new Error(`Harness boot 清单无法解析：${error.message || String(error)}`)
+  }
+  const clientEntry = boot.entries?.find((entry) => entry?.id === '@deepseek-ai/dsh-client-modules')
+  if (!clientEntry?.url) throw new Error('Harness boot 清单缺少 dsh-client-modules')
+  const clientUrl = new URL(clientEntry.url, `http://127.0.0.1:${port}`)
+  if (clientUrl.hostname !== '127.0.0.1' || Number(clientUrl.port || 80) !== Number(port)) {
+    throw new Error('Harness client module 指向了非本地地址')
+  }
+  const clientSource = await fetchHarnessText(port, `${clientUrl.pathname}${clientUrl.search}`)
+  const moduleScripts = [...html.matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)].map((match) => match[1])
+  const shellPath = moduleScripts.find((source) => /\/assets\/.*\.js(?:\?|$)/.test(source))
+  const shellSource = shellPath ? await fetchHarnessText(port, shellPath) : ''
+  const hostSource = `${html}\n${shellSource}`
+  const expectsFactory = /createClientModuleSystem|did not export the bootstrap module face/.test(hostSource)
+  const providesFactory = /(?:exports\.|["'])createClientModuleSystem(?:["']|\s*=)/.test(clientSource)
+  const expectsLegacy = /ClientModuleSystem/.test(hostSource)
+  const providesLegacy = /(?:exports\.|["'])ClientModuleSystem(?:["']|\s*=)/.test(clientSource)
+
+  if (expectsFactory && !providesFactory) {
+    throw new Error('Harness 宿主需要 createClientModuleSystem，但实际 client.js 未导出该 bootstrap 接口')
+  }
+  if (!expectsFactory && expectsLegacy && !providesLegacy) {
+    throw new Error('Harness Web 需要 ClientModuleSystem，但实际 client.js 未导出该接口')
+  }
+  if (!expectsFactory && !expectsLegacy) throw new Error('无法识别 Harness Web 的 bootstrap 接口')
+  return { revision: String(boot.rev || ''), clientRevision: String(clientEntry.rev || ''), contract: expectsFactory ? 'factory' : 'legacy' }
+}
+
 async function ensureWorkspaceRegistered(port, workspace) {
   const resolved = path.resolve(workspace)
   fs.mkdirSync(resolved, { recursive: true })
@@ -144,19 +206,48 @@ async function ensureWorkspaceRegistered(port, workspace) {
   return result.value.workspace
 }
 
+function unwrapHarnessResult(result, method) {
+  if (result?.ok === false) {
+    const detail = result.error?.message || result.error?.code || '未知错误'
+    throw new Error(`Harness API ${method} 调用失败：${detail}`)
+  }
+  return result?.ok === true && Object.hasOwn(result, 'value') ? result.value : result
+}
+
+async function describeHarness(port) {
+  const description = unwrapHarnessResult(await callHarness(port, 'host.describe', {}), 'host.describe')
+  if (!description || typeof description.version !== 'string' || !description.version.trim()) {
+    throw new Error('Harness 未返回有效的版本信息')
+  }
+  return description
+}
+
+function assertHarnessCompatibility(description, expectedVersion, port) {
+  const actualVersion = String(description?.version || '').trim()
+  if (!actualVersion) throw new Error(`端口 ${port} 上的 Harness 无法确认版本。`)
+  if (actualVersion !== expectedVersion) {
+    throw new Error(`端口 ${port} 正在运行 Harness ${actualVersion}，Studio 内置版本为 ${expectedVersion}。为防止客户端模块混用，请关闭外部 Harness 或更换端口。`)
+  }
+  return actualVersion
+}
+
 class RuntimeManager extends EventEmitter {
-  constructor(settingsStore) {
+  constructor(settingsStore, options = {}) {
     super()
     this.settingsStore = settingsStore
+    this.beforeStart = typeof options.beforeStart === 'function' ? options.beforeStart : null
     this.child = null
     this.external = false
     this.stopping = false
+    this.appRoot = resolveProjectRoot()
+    this.expectedVersion = readBundledDshVersion(this.appRoot) || 'unknown'
     this.status = {
       phase: 'idle',
       message: '等待启动',
       url: '',
       pid: null,
-      version: '0.1.0-rc.7',
+      version: this.expectedVersion,
+      uiRevision: '',
     }
     this.logs = []
   }
@@ -181,6 +272,33 @@ class RuntimeManager extends EventEmitter {
 
   getPaths() {
     return { node: resolveNodeExecutable(), cli: resolveDshCli() }
+  }
+
+  getHarnessVersion() {
+    return this.expectedVersion
+  }
+
+  #failStart(message, url = '') {
+    this.#log(message, 'error')
+    this.#setStatus({ phase: 'error', message, url, pid: null })
+    return this.getStatus()
+  }
+
+  async #verifyRunningHarness(port) {
+    let description
+    try {
+      description = await describeHarness(port)
+    } catch (describeError) {
+      try {
+        const bootstrap = await inspectHarnessBootstrap(port)
+        this.#log(`Harness ${this.expectedVersion} bootstrap 已验证（${bootstrap.contract} · ${bootstrap.clientRevision || bootstrap.revision}）`)
+        return { version: this.expectedVersion, bootstrap, verification: 'bootstrap' }
+      } catch (bootstrapError) {
+        throw new Error(`Harness 客户端模块兼容性验证失败：${bootstrapError.message || String(bootstrapError)}。请关闭其他 Harness 进程后重试；host.describe：${describeError.message || String(describeError)}`)
+      }
+    }
+    const version = assertHarnessCompatibility(description, this.expectedVersion, port)
+    return { ...description, version, verification: 'host.describe' }
   }
 
   async registerWorkspace(workspace) {
@@ -210,14 +328,30 @@ class RuntimeManager extends EventEmitter {
     const workspace = path.resolve(settings.workspace || path.join(os.homedir(), 'DeepSeek Harness', 'Workspace'))
     fs.mkdirSync(workspace, { recursive: true })
     const url = `http://127.0.0.1:${settings.port}`
-    this.#setStatus({ phase: 'starting', message: '正在启动 Harness…', url, pid: null })
+    const uiRevision = randomUUID()
+    this.#setStatus({ phase: 'starting', message: '正在启动 Harness…', url, pid: null, uiRevision })
+
+    try {
+      await this.beforeStart?.()
+      const integrity = assertDshRuntimeIntegrity(this.appRoot)
+      this.expectedVersion = integrity.expectedVersion
+      this.#setStatus({ version: this.expectedVersion })
+    } catch (error) {
+      return this.#failStart(error.message || String(error))
+    }
 
     const existing = await probeHarness(settings.port)
     if (existing.ready) {
+      let description
+      try {
+        description = await this.#verifyRunningHarness(settings.port)
+      } catch (error) {
+        return this.#failStart(error.message || String(error))
+      }
       this.external = true
       await this.#prepareWorkspace(settings.port, workspace)
-      this.#log(`已连接现有 Harness 服务：${url}`)
-      this.#setStatus({ phase: 'running', message: 'Harness 已连接', url, pid: null })
+      this.#log(`已连接兼容的 Harness ${description.version}：${url}`)
+      this.#setStatus({ phase: 'running', message: 'Harness 已连接', url, pid: null, version: description.version })
       return this.getStatus()
     }
     if (existing.occupied) {
@@ -291,6 +425,14 @@ class RuntimeManager extends EventEmitter {
     while (Date.now() < deadline && this.child === child) {
       const probe = await probeHarness(settings.port, 1500)
       if (probe.ready) {
+        try {
+          const description = await this.#verifyRunningHarness(settings.port)
+          this.#setStatus({ version: description.version })
+        } catch (error) {
+          const message = error.message || String(error)
+          await this.stop()
+          return this.#failStart(message)
+        }
         await this.#prepareWorkspace(settings.port, workspace)
         this.#log(`Harness 已就绪：${url}`)
         this.#setStatus({ phase: 'running', message: 'Harness 已就绪', url, pid: child.pid || null })
@@ -341,10 +483,13 @@ class RuntimeManager extends EventEmitter {
 
 module.exports = {
   RuntimeManager,
+  assertHarnessCompatibility,
   callHarness,
+  describeHarness,
   ensureDesktopControlPackage,
   ensureWorkspaceRegistered,
   firstExisting,
+  inspectHarnessBootstrap,
   probeHarness,
   resolveDshHome,
   resolveDshCli,

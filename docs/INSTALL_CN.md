@@ -8,7 +8,7 @@
 
 ## 安装
 
-1. 将 `DeepSeek-Harness-Studio-Setup-1.09.0-x64.exe` 复制到目标电脑。
+1. 将 `DeepSeek-Harness-Studio-Setup-1.09.1-x64.exe` 复制到目标电脑。
 2. 双击运行，在安装向导中选择安装目录；覆盖升级时可继续选择原目录。
 3. 可选择任意有写入权限的目录。若选择 `Program Files` 等受保护目录，Windows 可能要求管理员授权。
 4. 安装完成后程序会自动启动，并创建桌面与开始菜单快捷方式。
